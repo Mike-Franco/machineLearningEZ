@@ -191,6 +191,37 @@ body{
 /* the panels get a little starlight of their own */
 .panel{background:#1e1e46;}
 .screen.center{min-height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center;flex-direction:column;}
+
+/* ===================== HOME SCREEN SPACE ART ===================== */
+#spaceart{display:none;}
+body.on-home #spaceart{display:block;}
+#spaceart svg{position:fixed;pointer-events:none;image-rendering:pixelated;}
+.sp-planet{left:-70px;top:8%;width:230px;height:230px;opacity:.85;
+  filter:drop-shadow(0 0 22px rgba(150,90,255,.45));
+  animation:floatY 9s ease-in-out infinite alternate;}
+.sp-moon{right:6%;top:16%;width:92px;height:92px;opacity:.8;
+  filter:drop-shadow(0 0 12px rgba(200,220,255,.35));
+  animation:floatY 12s ease-in-out infinite alternate-reverse;}
+.sp-sat{right:16%;bottom:22%;width:44px;height:44px;opacity:.8;
+  animation:floatX 16s linear infinite alternate;}
+.sp-rocket{left:12%;bottom:12%;width:52px;height:78px;opacity:.85;
+  animation:floatY 7s ease-in-out infinite alternate;}
+.sp-spark{width:14px;height:14px;animation:sparkle 3.4s steps(2) infinite;}
+.sp-spark.s1{left:22%;top:22%;}
+.sp-spark.s2{right:24%;top:36%;animation-delay:.8s;width:18px;height:18px;}
+.sp-spark.s3{left:34%;bottom:16%;animation-delay:1.6s;}
+.sp-spark.s4{right:12%;bottom:36%;animation-delay:2.4s;width:11px;height:11px;}
+@keyframes floatY{from{transform:translateY(0);}to{transform:translateY(-14px);}}
+@keyframes floatX{from{transform:translate(0,0);}to{transform:translate(-26px,-10px);}}
+@keyframes sparkle{0%,100%{opacity:.25;transform:scale(.8);}50%{opacity:.9;transform:scale(1.1);}}
+@media (max-width:820px){
+  .sp-planet{width:150px;height:150px;left:-58px;top:5%;}
+  .sp-moon{width:62px;height:62px;right:4%;top:12%;}
+  .sp-rocket{width:38px;height:58px;left:8%;bottom:8%;}
+  .sp-sat{display:none;}
+}
+/* the logo gets a soft glow against the busy sky */
+h1.logo{text-shadow:4px 4px 0 #a05a00,8px 8px 0 rgba(0,0,0,.5),0 0 30px rgba(255,210,62,.35);}
 </style>
 <base target="_blank">
 </head>
@@ -198,17 +229,41 @@ body{
 <canvas id="stars"></canvas>
 <div id="stars2"></div>
 <div id="nebula"></div>
-<svg id="planet" viewBox="0 0 32 32" shape-rendering="crispEdges" aria-hidden="true">
-  <circle cx="16" cy="16" r="11" fill="#7b3fd4"/>
-  <path fill="#a06bff" d="M7 12h4v2H7zM14 8h5v2h-5zM20 14h5v3h-5zM10 20h4v2h-4zM18 21h6v2h-6z"/>
-  <path fill="#5a2ba0" d="M5 17h3v3H5zM23 10h3v2h-3zM12 24h5v2h-5z"/>
-  <path fill="#ffd23e" d="M2 18h28v2H2z" opacity=".85"/>
-  <path fill="#ffe89a" d="M4 15h24v1H4z" opacity=".6"/>
-</svg>
-<svg id="moon" viewBox="0 0 24 24" shape-rendering="crispEdges" aria-hidden="true">
-  <circle cx="12" cy="12" r="8" fill="#dfe6ff"/>
-  <path fill="#b6c0e8" d="M8 8h3v2H8zM13 13h3v3h-3zM9 15h2v2H9z"/>
-</svg>
+<div id="spaceart" aria-hidden="true">
+  <!-- big ringed planet -->
+  <svg class="sp-planet" viewBox="0 0 40 40" shape-rendering="crispEdges">
+    <ellipse cx="20" cy="21" rx="19" ry="5" fill="none" stroke="#ffd23e" stroke-width="2" opacity=".55"/>
+    <circle cx="20" cy="20" r="12" fill="#6a37c4"/>
+    <path fill="#9a63ff" d="M10 15h5v2h-5zM17 10h6v2h-6zM24 17h6v3h-6zM13 24h5v2h-5zM22 25h7v2h-7zM9 20h3v2H9z"/>
+    <path fill="#4d2399" d="M17 27h6v2h-6zM26 12h4v2h-4zM7 23h4v2H7z"/>
+    <path fill="#b98bff" d="M14 12h3v2h-3zM23 21h3v2h-3z"/>
+    <ellipse cx="20" cy="21" rx="19" ry="5" fill="none" stroke="#ffe89a" stroke-width="1" opacity=".8"/>
+  </svg>
+  <!-- small moon -->
+  <svg class="sp-moon" viewBox="0 0 20 20" shape-rendering="crispEdges">
+    <circle cx="10" cy="10" r="7" fill="#dfe6ff"/>
+    <path fill="#b6c0e8" d="M6 6h3v2H6zM11 11h3v3h-3zM7 13h2v2H7z"/>
+  </svg>
+  <!-- tiny satellite -->
+  <svg class="sp-sat" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="6" y="6" width="4" height="4" fill="#cddcff"/>
+    <rect x="1" y="7" width="4" height="2" fill="#4dc3ff"/>
+    <rect x="11" y="7" width="4" height="2" fill="#4dc3ff"/>
+    <rect x="7" y="3" width="2" height="2" fill="#ffd23e"/>
+  </svg>
+  <!-- a little rocket -->
+  <svg class="sp-rocket" viewBox="0 0 16 24" shape-rendering="crispEdges">
+    <path fill="#fff6e6" d="M6 4h4v2H6zM5 6h6v2H5zM4 8h8v8H4zM5 16h6v2H5z"/>
+    <path fill="#ff4d5e" d="M6 2h4v2H6zM6 18h4v2H6z"/>
+    <rect x="6" y="9" width="4" height="3" fill="#4dc3ff"/>
+    <path fill="#ffd23e" d="M5 16h6v2H5zM6 20h4v2H6z"/>
+  </svg>
+  <!-- four-point sparkles -->
+  <svg class="sp-spark s1" viewBox="0 0 9 9" shape-rendering="crispEdges"><path fill="#ffffff" d="M4 0h1v9H4zM0 4h9v1H0z"/></svg>
+  <svg class="sp-spark s2" viewBox="0 0 9 9" shape-rendering="crispEdges"><path fill="#ffe9b0" d="M4 0h1v9H4zM0 4h9v1H0z"/></svg>
+  <svg class="sp-spark s3" viewBox="0 0 9 9" shape-rendering="crispEdges"><path fill="#bcd4ff" d="M4 0h1v9H4zM0 4h9v1H0z"/></svg>
+  <svg class="sp-spark s4" viewBox="0 0 9 9" shape-rendering="crispEdges"><path fill="#ffffff" d="M4 0h1v9H4zM0 4h9v1H0z"/></svg>
+</div>
 <div id="app">
 
 <!-- ===================== TITLE ===================== -->
@@ -541,6 +596,7 @@ function stopMusic(){
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
+  document.body.classList.toggle('on-home', id==='screen-title');
   window.scrollTo(0,0);
 }
 function levelOf(xp){return Math.floor(xp/100)+1;}
@@ -2797,6 +2853,7 @@ function paintSettings(){
 }
 document.getElementById('btn-play').onclick=()=>{sfx.click();startMusic();renderHub();show('screen-hub');};
 document.getElementById('btn-hub-home').onclick=()=>{sfx.click();show('screen-title');};
+document.body.classList.add('on-home');   // the home screen is what loads first
 document.getElementById('btn-home-settings').onclick=()=>{sfx.click();paintSettings();show('screen-settings');};
 document.getElementById('btn-home-summary').onclick=()=>{sfx.click();renderSummary();show('screen-summary');};
 document.getElementById('btn-sum-home').onclick=()=>{sfx.click();show('screen-title');};
