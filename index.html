@@ -1,0 +1,2237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ML EZ — Meet the Dots!</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#141433; --panel:#1e1e46; --panel2:#2b2b5e; --ink:#fff6e6; --dim:#9a9ac8;
+  --red:#ff4d5e; --blue:#4dc3ff; --gold:#ffd23e; --green:#5dd75d; --purple:#b06bff; --pink:#ff8fd0;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font-family:'Press Start 2P',monospace;font-size:11px;line-height:1.8;}
+#app{max-width:780px;margin:0 auto;padding:14px;}
+.hidden{display:none !important;}
+h1.logo{font-size:30px;text-align:center;margin:30px 0 10px;color:var(--gold);
+  text-shadow:4px 4px 0 #a05a00,8px 8px 0 rgba(0,0,0,.5);letter-spacing:2px;line-height:1.5;}
+h2{font-size:12px;color:var(--gold);margin:0 0 10px;line-height:1.6;}
+.panel{background:var(--panel);border:4px solid #000;
+  box-shadow:inset -4px -4px 0 rgba(0,0,0,.35),inset 4px 4px 0 rgba(255,255,255,.07),6px 6px 0 rgba(0,0,0,.5);
+  padding:14px;margin-bottom:12px;}
+.center{text-align:center;}
+.small{font-size:9px;color:var(--dim);line-height:1.9;}
+.btn{display:inline-block;font-family:inherit;font-size:10px;color:#141433;
+  background:var(--gold);border:4px solid #000;padding:9px 12px;cursor:pointer;
+  box-shadow:inset -4px -4px 0 rgba(0,0,0,.25),4px 4px 0 rgba(0,0,0,.5);
+  margin:4px 4px 4px 0;user-select:none;}
+.btn:active{transform:translate(2px,2px);box-shadow:inset -4px -4px 0 rgba(0,0,0,.25),2px 2px 0 rgba(0,0,0,.5);}
+.btn.blue{background:var(--blue);} .btn.red{background:var(--red);color:#fff;}
+.btn.green{background:var(--green);} .btn.gray{background:var(--dim);} .btn.pink{background:var(--pink);}
+.btn.small2{font-size:8px;padding:6px 8px;}
+.btn.on{outline:3px solid #fff;outline-offset:2px;}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:9px;}
+.bar{height:18px;background:#000;border:3px solid #333;position:relative;margin:8px 0;flex:1;min-width:110px;}
+.bar>.fill{height:100%;background:var(--green);width:0%;transition:width .4s steps(8);}
+.bar>span{position:absolute;inset:0;font-size:8px;display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:1px 1px 0 #000;}
+canvas.game{width:100%;image-rendering:pixelated;display:block;background:#1a1a40;
+  border:4px solid #000;box-shadow:inset 0 0 0 4px #2b2b5e;touch-action:none;cursor:pointer;}
+#hubmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:8px 0;}
+.node{width:100%;padding:10px 6px;text-align:center;background:var(--panel2);border:4px solid #000;
+  box-shadow:4px 4px 0 rgba(0,0,0,.5);cursor:pointer;line-height:1.7;}
+.node.locked{opacity:.35;cursor:default;filter:grayscale(1);}
+.node .sprite{font-size:26px;line-height:1.3;}
+.node .nm{font-size:8px;margin-top:6px;}
+.node .sub{font-size:7px;color:var(--dim);margin-top:4px;}
+.node.done{border-color:var(--green);}
+.banner{font-size:10px;padding:10px;text-align:center;border:4px solid #000;margin-top:10px;line-height:1.9;}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:50;padding:14px;}
+.modal .panel{max-width:660px;width:100%;max-height:84vh;overflow:auto;}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:8px;color:var(--dim);margin-top:8px;line-height:1.8;}
+.big{font-size:18px;line-height:1.7;}
+.gold{color:var(--gold);} .good{color:var(--green);} .bad{color:var(--red);} .bl{color:var(--blue);}
+/* speech bubble */
+.bubble{position:relative;background:#fff6e6;color:#141433;border:4px solid #000;padding:12px 14px;
+  font-size:10px;line-height:1.9;margin:6px 0 18px;}
+.bubble:after{content:'';position:absolute;left:26px;bottom:-18px;width:0;height:0;
+  border:9px solid transparent;border-top-color:#000;}
+.bubble:before{content:'';position:absolute;left:29px;bottom:-12px;width:0;height:0;
+  border:6px solid transparent;border-top-color:#fff6e6;z-index:2;}
+.prof{width:64px;height:64px;image-rendering:pixelated;border:4px solid #000;background:#1a1a40;
+  float:left;margin:0 12px 0 0;}
+
+/* ---------- home + settings ---------- */
+.titlewrap{min-height:74vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.playbtn{display:block;margin:22px auto 0;font-family:inherit;font-size:20px;letter-spacing:3px;
+  color:#141433;background:var(--green);border:6px solid #000;padding:22px 40px;cursor:pointer;
+  box-shadow:inset -6px -6px 0 rgba(0,0,0,.25),inset 6px 6px 0 rgba(255,255,255,.25),8px 8px 0 rgba(0,0,0,.55);
+  animation:bob 1.6s steps(2) infinite;}
+.playbtn:active{transform:translate(3px,3px);box-shadow:inset -6px -6px 0 rgba(0,0,0,.25),4px 4px 0 rgba(0,0,0,.55);}
+@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+.homemenu{margin:26px auto 0;display:flex;flex-direction:column;gap:10px;max-width:280px;}
+.homemenu .btn{display:block;width:100%;margin:0;text-align:center;font-size:11px;padding:12px;}
+.creditline{margin-top:26px;font-size:8px;color:#5f5f96;letter-spacing:2px;}
+.creditline b{color:var(--pink);}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 0;border-bottom:3px dashed #2b2b5e;font-size:9px;line-height:1.8;}
+.setrow:last-child{border-bottom:0;}
+.setrow .lbl{flex:1;min-width:0;}
+.setrow .hint{font-size:7px;color:#5f5f96;letter-spacing:1px;display:block;margin-top:4px;}
+.slider{-webkit-appearance:none;appearance:none;width:130px;height:18px;background:#000;border:3px solid #333;cursor:pointer;}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:22px;background:var(--gold);border:3px solid #000;cursor:pointer;}
+.slider::-moz-range-thumb{width:16px;height:22px;background:var(--gold);border:3px solid #000;cursor:pointer;border-radius:0;}
+.toggle{font-family:inherit;font-size:9px;padding:8px 12px;border:4px solid #000;cursor:pointer;background:var(--dim);color:#141433;
+  box-shadow:inset -4px -4px 0 rgba(0,0,0,.25);min-width:74px;}
+.toggle.on{background:var(--green);}
+.creditbox{text-align:center;padding:18px 10px;}
+.creditbox .made{font-size:16px;color:var(--pink);margin:10px 0 6px;letter-spacing:2px;}
+.creditbox .tiny{font-size:7px;color:#5f5f96;letter-spacing:1px;line-height:2.2;}
+
+/* ---------- stage hub ---------- */
+#hubmap{display:flex;flex-direction:column;gap:14px;margin:8px 0;}
+.stage{background:var(--panel2);border:4px solid #000;box-shadow:4px 4px 0 rgba(0,0,0,.5);padding:12px;
+  border-left:10px solid var(--sc,#7ee0ff);}
+.stage-head{display:flex;gap:10px;align-items:flex-start;}
+.stage-ico{font-size:24px;line-height:1.2;}
+.stage-txt{flex:1;min-width:0;}
+.stage-title{font-size:9px;color:var(--sc,#7ee0ff);line-height:1.9;letter-spacing:1px;}
+.stage-blurb{font-size:7px;color:var(--dim);margin-top:4px;line-height:1.9;}
+.stage-real{font-size:6px;color:#5f5f96;margin-top:3px;letter-spacing:1px;}
+.stage-bar{height:14px;background:#000;border:3px solid #333;margin:10px 0 4px;}
+.stage-bar>span{display:block;height:100%;background:var(--sc,#7ee0ff);transition:width .3s steps(6);}
+.stage-meta{font-size:7px;color:var(--dim);letter-spacing:1px;}
+.stage-btns{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;}
+.stage-btns .btn{margin:0;font-size:9px;}
+.stage .levels{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px;}
+.node .nreal{font-size:6px;color:#5f5f96;margin-top:4px;letter-spacing:1px;}
+
+/* ---------- level page ---------- */
+.lvtop{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.lvchip{font-size:9px;color:#141433;background:var(--gold);border:3px solid #000;padding:6px 9px;letter-spacing:1px;
+  box-shadow:inset -3px -3px 0 rgba(0,0,0,.25);}
+.lvprogress{flex:1;min-width:90px;display:flex;gap:4px;}
+.lvprogress i{flex:1;height:8px;background:#2b2b5e;border:2px solid #000;}
+.lvprogress i.on{background:var(--green);}
+#lv-name{font-size:15px;color:var(--gold);line-height:1.7;margin:0 0 2px;text-shadow:3px 3px 0 rgba(0,0,0,.6);}
+#lv-real{font-size:7px;color:#5f5f96;letter-spacing:2px;margin:0 0 12px !important;}
+#lv-say{font-size:10px;line-height:2;}
+#lv-controls .btn{font-size:9px;}
+.prof{border-radius:0;box-shadow:4px 4px 0 rgba(0,0,0,.5);}
+</style>
+<base target="_blank">
+</head>
+<body>
+<div id="app">
+
+<!-- ===================== TITLE ===================== -->
+<div id="screen-title" class="screen center">
+  <div class="titlewrap">
+    <h1 class="logo">ML<br>EZ</h1>
+    <p class="small">meet the dots!</p>
+    <div id="title-art" style="margin-top:14px;"></div>
+    <button class="playbtn" id="btn-play">▶ PLAY</button>
+    <div class="homemenu">
+      <button class="btn gray" id="btn-home-settings">⚙ SETTINGS</button>
+      <button class="btn gray" id="btn-home-credits">★ CREDITS</button>
+    </div>
+    <p class="creditline">MADE BY <b>MIKE ABAT</b></p>
+  </div>
+</div>
+
+<!-- ===================== SETTINGS ===================== -->
+<div id="screen-settings" class="screen hidden">
+  <div class="panel">
+    <div class="hud" style="margin-bottom:8px;">
+      <span class="gold">⚙ SETTINGS</span>
+      <button class="btn small2 gray" id="btn-set-home">◀ HOME</button>
+    </div>
+    <div class="setrow">
+      <div class="lbl">MUSIC<span class="hint">pixel tunes while you play</span></div>
+      <button class="toggle on" id="set-music">ON</button>
+    </div>
+    <div class="setrow">
+      <div class="lbl">MUSIC VOLUME<span class="hint" id="set-vol-hint">50%</span></div>
+      <input class="slider" type="range" min="0" max="100" value="50" id="set-vol">
+    </div>
+    <div class="setrow">
+      <div class="lbl">SOUND EFFECTS<span class="hint">blips and pops</span></div>
+      <button class="toggle on" id="set-sfx">ON</button>
+    </div>
+    <div class="setrow">
+      <div class="lbl">EFFECTS VOLUME<span class="hint" id="set-sfxvol-hint">60%</span></div>
+      <input class="slider" type="range" min="0" max="100" value="60" id="set-sfxvol">
+    </div>
+    <div class="setrow">
+      <div class="lbl">TEXT SPEED<span class="hint">how fast Prof. Dot talks</span></div>
+      <button class="toggle" id="set-speed">NORMAL</button>
+    </div>
+  </div>
+  <div class="panel center">
+    <button class="btn red small2" id="btn-set-wipe">🗑 ERASE MY PROGRESS</button>
+    <p class="small" style="margin-top:8px;">this clears your levels and stickers</p>
+  </div>
+</div>
+
+<!-- ===================== CREDITS ===================== -->
+<div id="modal-credits" class="modal hidden">
+  <div class="panel">
+    <h2 style="text-align:center;">◈ CREDITS</h2>
+    <div class="creditbox">
+      <div style="font-size:26px;">🍬 👾 🍪</div>
+      <div class="made">MADE BY MIKE ABAT</div>
+      <p class="small" style="margin:10px 0 0;">ML EZ — a tiny game that teaches how computers look at data.</p>
+      <p class="tiny" style="margin-top:14px;">ART: PIXELS + EMOJI · MUSIC: PIXEL BEEPS<br>ENGINE: ONE HTML FILE, NO LIBRARIES</p>
+    </div>
+    <div class="center" style="margin-top:10px;"><button class="btn small2 gray" id="btn-credits-close">CLOSE</button></div>
+  </div>
+</div>
+
+<!-- ===================== LEVEL SHELL ===================== -->
+<div id="screen-level" class="screen hidden">
+  <div class="panel">
+    <div class="lvtop">
+      <div class="lvchip" id="lv-title">◈ 0.1</div>
+      <div class="lvprogress" id="lv-progress"></div>
+      <button class="btn small2 gray" id="btn-lv-hub">MAP</button>
+    </div>
+    <h2 id="lv-name"></h2>
+    <p id="lv-real" style="margin:-4px 0 10px;font-size:7px;color:#5f5f96;letter-spacing:1px;"></p>
+    <canvas id="cv" class="game" width="480" height="300"></canvas>
+    <div id="lv-controls" class="row" style="margin-top:10px;"></div>
+    <div id="lv-banner" class="banner hidden"></div>
+  </div>
+
+  <div class="panel" style="display:flex;align-items:flex-start;">
+    <canvas class="prof" id="prof" width="16" height="16"></canvas>
+    <div style="flex:1;min-width:0;">
+      <div class="small" style="color:var(--blue);margin-bottom:6px;">PROF. DOT</div>
+      <p id="lv-say" style="margin:0;font-size:10px;line-height:2;"></p>
+    </div>
+  </div>
+
+  <div class="panel center">
+    <button class="btn green" id="btn-lv-done">I GOT IT! ✔</button>
+    <button class="btn small2 gray" id="btn-reset-lv">↺ AGAIN</button>
+  </div>
+</div>
+
+<!-- ===================== HUB ===================== -->
+<div id="screen-hub" class="screen hidden">
+  <div class="panel">
+    <div class="hud">
+      <span>LV.<b id="hud-level">1</b></span>
+      <span class="bar"><div class="fill" id="hud-xpfill"></div><span id="hud-xptext">0/100</span></span>
+      <button class="btn small2 gray" id="btn-dex">DEX</button>
+      <button class="btn small2 gray" id="btn-hub-home">⌂ HOME</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>◈ STAGES</h2>
+    <div id="hubmap"></div>
+  </div>
+</div>
+
+<!-- ===================== MODELDEX ===================== -->
+<div id="modal-dex" class="modal hidden">
+  <div class="panel">
+    <h2>◈ STICKER BOOK</h2>
+    <div id="dexgrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;"></div>
+    <div class="center" style="margin-top:12px;"><button class="btn small2 gray" id="btn-dex-close">CLOSE</button></div>
+  </div>
+</div>
+
+<!-- ===================== QUIZ MODAL ===================== -->
+<div id="modal-quiz" class="modal hidden">
+  <div class="panel">
+    <h2>◈ QUICK CHECK</h2>
+    <p id="quiz-q" style="min-height:44px;font-size:10px;line-height:2;"></p>
+    <div id="quiz-opts"></div>
+    <p id="quiz-feedback" style="min-height:20px;margin-top:8px;font-size:9px;line-height:1.9;"></p>
+    <div class="center">
+      <button class="btn gray hidden" id="btn-quiz-back">◀ GO BACK &amp; LOOK</button>
+      <button class="btn hidden" id="btn-quiz-next">NEXT ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== RESULTS ===================== -->
+<div id="screen-results" class="screen hidden">
+  <div class="panel center">
+    <h2 style="text-align:center;">◈ NICE WORK!</h2>
+    <p class="big good" id="res-badge" style="margin:14px 0;"></p>
+    <div id="res-lines" style="text-align:left;max-width:340px;margin:0 auto;font-size:9px;line-height:2.2;"></div>
+    <div style="margin-top:16px;">
+      <button class="btn" id="btn-res-next">NEXT LEVEL ▶</button>
+      <button class="btn gray" id="btn-res-hub">MAP</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+/* ============================================================
+   SAVE
+   ============================================================ */
+const SAVE_KEY='mlquest_save_v1';
+let S={xp:0,dex:[],done:[]};
+try{const raw=localStorage.getItem(SAVE_KEY); if(raw){const p=JSON.parse(raw);S.xp=p.xp||0;S.dex=p.dex||[];S.done=p.done||[];}}catch(e){}
+if(!Array.isArray(S.done))S.done=[];
+if(!Array.isArray(S.dex))S.dex=[];
+function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
+
+/* ============================================================
+   SOUND
+   ============================================================ */
+let AC=null;
+function beep(f,d=0.07,type='square',v=0.05){
+  try{
+    if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)();
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type=type;o.frequency.value=f;g.gain.value=v*(SET.sfx?SET.sfxVol:0);
+    g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);
+    o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d);
+  }catch(e){}
+}
+const sfx={
+  click:()=>beep(520,0.05),
+  place:()=>beep(700,0.05),
+  good:()=>{beep(880,0.08);setTimeout(()=>beep(1320,0.1),80);},
+  bad:()=>beep(180,0.18,'sawtooth'),
+  win:()=>{[523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,0.12),i*110));},
+  blip:()=>beep(900,0.015,'square',0.02),
+  pop:()=>beep(1150,0.05,'sine',0.06)
+};
+/* ============================================================
+   PIXEL MUSIC  (tiny step sequencer, no files)
+   ============================================================ */
+let musicGain=null,musicTimer=null,musicStep=0,musicOn=false;
+const BPM=112, STEP_MS=60000/BPM/2;
+// a bouncy 16-step loop: bass + lead + tick
+const LEAD=[0,7,12,7,3,10,15,10, 5,12,17,12,3,10,7,3];
+const BASS=[0,0,7,7,5,5,3,3, 0,0,7,7,5,5,3,3];
+const ROOT=220; // A3
+function midiHz(semi){return ROOT*Math.pow(2,semi/12);}
+function audioCtx(){
+  if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}
+  if(AC.state==='suspended'){try{AC.resume();}catch(e){}}
+  return AC;
+}
+function musicBus(){
+  const a=audioCtx(); if(!a)return null;
+  if(!musicGain){
+    musicGain=a.createGain();
+    musicGain.gain.value=SET.musicVol*0.5;
+    musicGain.connect(a.destination);
+  }
+  return a;
+}
+function setMusicVolume(v){ if(musicGain){try{musicGain.gain.value=v*0.5;}catch(e){}} }
+function tone(freq,dur,type,vol,when){
+  const a=musicBus(); if(!a||!musicGain)return;
+  const t=(when||a.currentTime);
+  const o=a.createOscillator(),g=a.createGain();
+  o.type=type;o.frequency.value=freq;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002,vol),t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g);g.connect(musicGain);
+  o.start(t);o.stop(t+dur+0.02);
+}
+function musicTick(){
+  if(!musicOn)return;
+  const i=musicStep%16;
+  // lead: skip a few steps for a hooky melody
+  if([0,2,3,5,6,8,10,11,13,14].includes(i)) tone(midiHz(LEAD[i]),0.14,'square',0.055);
+  // bass every 4th
+  if(i%4===0) tone(midiHz(BASS[i]-24),0.20,'triangle',0.09);
+  // hat
+  if(i%2===1) tone(3200,0.02,'square',0.012);
+  // sparkle every bar
+  if(i===0) tone(midiHz(LEAD[i]+12),0.10,'sine',0.035);
+  musicStep++;
+}
+function startMusic(){
+  if(!SET.music)return;
+  const a=audioCtx(); if(!a)return;
+  if(musicOn)return;
+  musicOn=true;
+  if(!musicGain) musicBus();
+  setMusicVolume(SET.musicVol);
+  if(musicTimer)clearInterval(musicTimer);
+  musicTick();
+  musicTimer=setInterval(musicTick,STEP_MS);
+}
+function stopMusic(){
+  musicOn=false;
+  if(musicTimer){clearInterval(musicTimer);musicTimer=null;}
+}
+
+
+/* ============================================================
+   SCREENS + HUD
+   ============================================================ */
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  window.scrollTo(0,0);
+}
+function levelOf(xp){return Math.floor(xp/100)+1;}
+function renderHUD(){
+  const into=S.xp%100;
+  document.getElementById('hud-level').textContent=levelOf(S.xp);
+  document.getElementById('hud-xpfill').style.width=into+'%';
+  document.getElementById('hud-xptext').textContent=into+'/100';
+}
+
+/* ============================================================
+   CUTE SPRITES
+   ============================================================ */
+const SPRITES={
+  // cuddly blobs with eyes
+  red:["........","..####..",".######.","##o##o##","########","########",".######.","..#..#.."],
+  blue:["........","..####..",".######.","##o##o##","########","########",".######.","..#..#.."],
+  gold:["........","..####..",".######.","##o##o##","########","########",".######.","..#..#.."],
+  mystery:["........","..####..",".######.","###..###","..####..","...##...","...##...","........"],
+  star:["...##...","...##...","########","..####..",".######.","..#..#..","..#..#..","........"],
+  heart:["........",".##..##.","########","########",".######.","..####..","...##...","........"],
+};
+const SPRITE_COLOR={red:'#ff4d5e',blue:'#4dc3ff',gold:'#ffd23e',mystery:'#c8c8e8',star:'#ffd23e',heart:'#ff8fd0'};
+function drawSprite(ctx,spr,x,y,scale=3,color){
+  const rows=SPRITES[spr];ctx.fillStyle=color;
+  for(let r=0;r<rows.length;r++)for(let c=0;c<rows[r].length;c++)
+    if(rows[r][c]==='#')ctx.fillRect(x+c*scale,y+r*scale,scale,scale);
+}
+function drawBlob(ctx,spr,x,y,scale,color,eye){
+  drawSprite(ctx,spr,x,y,scale,color);
+  if(eye!==false){
+    ctx.fillStyle='#141433';
+    ctx.fillRect(x+2*scale,y+3*scale,scale,scale);
+    ctx.fillRect(x+5*scale,y+3*scale,scale,scale);
+  }
+}
+
+/* professor: a little round owl with glasses */
+function drawProf(){
+  const c=document.getElementById('prof'),x=c.getContext('2d');
+  const P=[
+    "................",
+    "....########....",
+    "..############..",
+    "..##ww####ww##..",
+    "..##wo####ow##..",
+    "..##ww####ww##..",
+    "..############..",
+    "..####ffff####..",
+    "...##########...",
+    "..############..",
+    ".##############.",
+    ".##############.",
+    "..############..",
+    "...##......##...",
+    "...##......##...",
+    "................"];
+  x.fillStyle='#1a1a40';x.fillRect(0,0,16,16);
+  const sc=1;
+  for(let r=0;r<16;r++)for(let ci=0;ci<16;ci++){
+    const ch=P[r][ci];if(ch==='.')continue;
+    x.fillStyle= ch==='#'?'#8f6bff': ch==='w'?'#fff' : ch==='o'?'#141433' : '#ffd23e';
+    x.fillRect(ci*sc,r*sc,sc,sc);
+  }
+}
+
+/* ============================================================
+   CANVAS HELPERS
+   ============================================================ */
+const CV=document.getElementById('cv'),CX=CV.getContext('2d');
+const W=480,H=300;
+function toCanvas(e,cv){
+  const r=cv.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};
+}
+function clearCv(){CX.fillStyle='#1a1a40';CX.fillRect(0,0,W,H);}
+
+/* big rounded play area with a soft border */
+function playArea(){
+  CX.fillStyle='#232355';
+  CX.fillRect(14,14,W-28,H-28);
+  CX.strokeStyle='#3d3d7a';CX.lineWidth=4;
+  CX.strokeRect(14,14,W-28,H-28);
+}
+
+function fmt(v){
+  if(Math.abs(v)>=1000)return Math.round(v/100)/10+'k';
+  if(Math.abs(v)>=10)return Math.round(v);
+  return Math.round(v*10)/10;
+}
+
+/* axes, but friendly: no harsh grid, soft ticks */
+function axes(box,domain,labels,opts){
+  opts=opts||{};
+  const {x,y,w,h}=box,d=domain;
+  CX.fillStyle='#1a1a40';CX.fillRect(x,y,w,h);
+  CX.strokeStyle='#3d3d7a';CX.lineWidth=2;CX.strokeRect(x,y,w,h);
+  const X=v=>x+(v-d.x0)/(d.x1-d.x0)*w;
+  const Y=v=>y+h-(v-d.y0)/(d.y1-d.y0)*h;
+  const nt=labels.ticks||4;
+  CX.font='7px "Press Start 2P"';CX.fillStyle='#8a8ab8';
+  for(let i=0;i<=nt;i++){
+    const vx=d.x0+(d.x1-d.x0)*i/nt, vy=d.y0+(d.y1-d.y0)*i/nt;
+    CX.textAlign='center';CX.fillText(fmt(vx),X(vx),y+h+13);
+    CX.textAlign='right';CX.fillText(fmt(vy),x-5,Y(vy)+3);
+  }
+  CX.textAlign='center';CX.fillStyle='#c8c8e8';
+  CX.fillText(labels.x||'',x+w/2,y+h+26);
+  CX.save();CX.translate(x-28,y+h/2);CX.rotate(-Math.PI/2);
+  CX.fillText(labels.y||'',0,0);CX.restore();
+  CX.textAlign='left';
+  return {X,Y};
+}
+function dotAt(sx,sy,px,py,r,col,alpha){
+  CX.globalAlpha=alpha===undefined?1:alpha;
+  CX.fillStyle=col;CX.beginPath();CX.arc(sx(px),sy(py),r,0,7);CX.fill();
+  CX.globalAlpha=1;
+}
+/* a dot WITH EYES — the whole point of this build */
+function faceAt(sx,sy,px,py,r,col,blink){
+  const x=sx(px),y=sy(py);
+  CX.fillStyle=col;
+  CX.beginPath();CX.arc(x,y,r,0,7);CX.fill();
+  CX.strokeStyle='#000';CX.lineWidth=2;CX.stroke();
+  CX.fillStyle='#141433';
+  const er=Math.max(1.4,r*0.16);
+  if(blink){
+    CX.fillRect(x-r*0.45,y-er,er*2.4,1.8);
+    CX.fillRect(x+r*0.15,y-er,er*2.4,1.8);
+  }else{
+    CX.beginPath();CX.arc(x-r*0.32,y-r*0.1,er,0,7);CX.fill();
+    CX.beginPath();CX.arc(x+r*0.32,y-r*0.1,er,0,7);CX.fill();
+  }
+  // tiny smile
+  CX.strokeStyle='#141433';CX.lineWidth=1.4;
+  CX.beginPath();CX.arc(x,y+r*0.18,r*0.32,0.15*Math.PI,0.85*Math.PI);CX.stroke();
+}
+
+/* ============================================================
+   THE DOTS — one family, reused everywhere
+   ============================================================ */
+const DATA=[];
+(function build(){
+  const fam=[
+    {name:'red', tag:'CANDY', n:20,bx:39,by:190,sx:3.2,sy:7, mass:3800},
+    {name:'blue',tag:'GUMMY', n:20,bx:47,by:210,sx:3.0,sy:8, mass:4500},
+    {name:'gold',tag:'COOKIE',n:18,bx:52,by:225,sx:2.6,sy:9, mass:5200},
+  ];
+  let id=1;
+  fam.forEach(s=>{
+    for(let i=0;i<s.n;i++){
+      const g=(Math.random()+Math.random()+Math.random()+Math.random()-2)/2;
+      const g2=(Math.random()+Math.random()+Math.random()+Math.random()-2)/2;
+      DATA.push({id:id++,bill:+(s.bx+g*s.sx*2).toFixed(1),
+        flipper:Math.round(s.by+g2*s.sy*2),
+        mass:Math.round(s.mass+g*900+g2*600),
+        species:s.name, tag:s.tag});
+    }
+  });
+})();
+const COLOR={red:'#ff4d5e',blue:'#4dc3ff',gold:'#ffd23e'};
+const TAG={red:'CANDY',blue:'GUMMY',gold:'COOKIE'};
+const COLS={bill:{label:'STRIPES',min:30,max:60},
+            flipper:{label:'WIDTH (cm)',min:170,max:245},
+            mass:{label:'WEIGHT (g)',min:2800,max:6200}};
+
+/* ============================================================
+   LEVELS
+   ============================================================ */
+
+/* ---- helpers for the kNN level ---- */
+function scatter(arr,n){
+  arr.length=0;
+  for(let i=0;i<n;i++){
+    const cls=['red','blue','gold'][i%3];
+    const cx=cls==='red'?150:cls==='blue'?320:235;
+    const cy=cls==='red'?150:cls==='blue'?160:70;
+    arr.push({x:cx+(Math.random()-0.5)*90,y:cy+(Math.random()-0.5)*90,cls:cls});
+  }
+}
+function knnVote(pts,x,y,K){
+  const sorted=pts.map(p=>({p,d:(p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)})).sort((a,b)=>a.d-b.d);
+  const near=sorted.slice(0,K);
+  let ember=0,aqua=0,gold=0;
+  near.forEach(o=>{if(o.p.cls==='red')ember++;else if(o.p.cls==='blue')aqua++;else gold++;});
+  let pred='red';
+  if(aqua>ember&&aqua>=gold)pred='blue';
+  else if(gold>ember&&gold>aqua)pred='gold';
+  return {near,pred,ember,aqua,gold};
+}
+
+const LEVELS=[
+/* ---------------- 0.1 ---------------- */
+{
+  id:'0.1',name:'HELLO, DOTS!',real:'data tables',icon:'👋',sub:'who are you?',
+  build(){
+    this.sel=0;this.showTable=true;this.blink=0;
+    this.ctrl([{t:'📋 TABLE',on:true,f:()=>{this.showTable=true;}},
+               {t:'😀 DOTS!',f:()=>{this.showTable=false;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    if(this.showTable){
+      const x0=34,y0=58,rh=31;
+      const head=['#','STRIPES','WIDTH','KIND'];
+      const cw=[42,84,78,100];
+      let x=x0;
+      CX.font='8px "Press Start 2P"';CX.fillStyle='#ffd23e';
+      head.forEach((h,i)=>{CX.fillText(h,x,y0);x+=cw[i];});
+      for(let r=0;r<6;r++){
+        const d=DATA[r],yy=y0+24+r*rh;
+        if(r===this.sel){CX.fillStyle='#33336e';CX.fillRect(x0-10,yy-15,300,rh-2);}
+        CX.fillStyle='#fff6e6';x=x0;
+        [d.id,d.bill,d.flipper,TAG[d.species]].forEach((v,i)=>{CX.fillText(String(v),x,yy);x+=cw[i];});
+        drawSprite(CX,d.species,x0+282,yy-11,2.6,COLOR[d.species]);
+      }
+      CX.fillStyle='#8a8ab8';CX.font='8px "Press Start 2P"';
+      CX.fillText('TAP A ROW ↑',x0,y0+24+6*rh+26);
+    }else{
+      const a=axes({x:70,y:42,w:352,h:196},{x0:30,x1:60,y0:170,y1:245},
+                   {x:'HOW MANY STRIPES',y:'HOW WIDE',ticks:4});
+      DATA.forEach((d,i)=>{
+        const r=d.species==='gold'?6:7;
+        faceAt(a.X,a.Y,d.bill,d.flipper,r,COLOR[d.species],(i+this.blink)%17===0);
+      });
+      CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.textAlign='center';
+      CX.fillText('THE SAME TABLE, AS LITTLE CREATURES',W/2,284);CX.textAlign='left';
+    }
+  },
+  click(p){
+    const y0=58,r=Math.floor((p.y-(y0+10))/31);
+    if(r>=0&&r<6){this.sel=r;sfx.pop();this.draw();}
+  },
+  say:'Hi! I\'m <b>Prof. Dot</b>! Our table is a box of <b>candy creatures</b>. Each row is <b>one creature</b>. Each column is <b>one thing about it</b>. Tap a row, then hit <b>DOTS!</b> <span style="color:#8a8ab8;">(big word: a table of data)</span>',
+  sowhat:'One row = one creature. One column = one thing about it.',
+  quiz:[
+    {q:'What is one ROW?',o:['One creature 👀','One column','A whole table'],a:0,why:'One row = one creature!'},
+    {q:'What is one COLUMN?',o:['A creature','One thing measured about every creature','A chart'],a:1,why:'A column is one measurement, taken for all of them.'}
+  ]
+},
+/* ---------------- 0.2 ---------------- */
+{
+  id:'0.2',name:'DOT CLOUDS',real:'scatter plots',icon:'☁️',sub:'two columns → a picture',
+  build(){
+    this.xc='bill';this.yc='flipper';this.blink=0;
+    this.ctrl([{t:'STRIPES →',f:()=>{this.xc='bill';}},{t:'WIDTH →',f:()=>{this.xc='flipper';}},
+               {t:'WEIGHT →',f:()=>{this.xc='mass';}},
+               {t:'↑ WIDTH',f:()=>{this.yc='flipper';}},{t:'↑ STRIPES',f:()=>{this.yc='bill';}},
+               {t:'↑ WEIGHT',f:()=>{this.yc='mass';}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const a=axes({x:70,y:42,w:352,h:196},
+      {x0:COLS[this.xc].min,x1:COLS[this.xc].max,y0:COLS[this.yc].min,y1:COLS[this.yc].max},
+      {x:COLS[this.xc].label,y:COLS[this.yc].label,ticks:4});
+    DATA.forEach((d,i)=>faceAt(a.X,a.Y,d[this.xc],d[this.yc],7,COLOR[d.species],(i+this.blink)%19===0));
+    CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.textAlign='center';
+    CX.fillText('58 CREATURES · CANDY / GUMMY / COOKIE',W/2,284);CX.textAlign='left';
+  },
+  click(p){
+    const X=v=>70+(v-COLS[this.xc].min)/(COLS[this.xc].max-COLS[this.xc].min)*352;
+    const Y=v=>238-(v-COLS[this.yc].min)/(COLS[this.yc].max-COLS[this.yc].min)*196;
+    let best=null,bd=1e9;
+    DATA.forEach(d=>{const dx=X(d[this.xc])-p.x,dy=Y(d[this.yc])-p.y,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;best=d;}});
+    if(best&&bd<420){sfx.pop();this.draw();
+      CX.fillStyle='#fff6e6';CX.font='8px "Press Start 2P"';
+      CX.fillText('#'+best.id+'  '+TAG[best.species]+'  '+best.bill+' STRIPES',34,32);
+    }
+  },
+  say:'Put one column along the bottom and another up the side. Candy, gummy and cookie creatures <b>gather into three clumps</b> — you just couldn\'t see that in the table! <span style="color:#8a8ab8;">(big word: scatter plot)</span>',
+  sowhat:'A dot cloud is just two columns of the table, drawn.',
+  quiz:[
+    {q:'A dot cloud shows...',o:['Every column at once','Two columns, one per side','The total'],a:1,why:'Two columns, that\'s it.'},
+    {q:'Each dot is...',o:['One column','One creature','One kind'],a:1,why:'One row = one dot = one creature.'}
+  ]
+},
+/* ---------------- 0.3 ---------------- */
+{
+  id:'0.3',name:'BAR PILE-UP',real:'histograms',icon:'📊',sub:'counting creatures',
+  build(){
+    this.col='bill';this.bins=8;this.showMM=true;this.blink=0;
+    this.ctrl([{t:'STRIPES',f:()=>{this.col='bill';}},{t:'WIDTH',f:()=>{this.col='flipper';}},
+               {t:'WEIGHT',f:()=>{this.col='mass';}},
+               {t:'FEWER BOXES',f:()=>{this.bins=Math.max(2,this.bins-2);}},
+               {t:'MORE BOXES',f:()=>{this.bins=Math.min(22,this.bins+2);}},
+               {t:'MEAN/MID',f:()=>{this.showMM=!this.showMM;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const c=COLS[this.col],vals=DATA.map(d=>d[this.col]);
+    const mn=Math.min(...vals),mx=Math.max(...vals),bw=(mx-mn)/this.bins;
+    const counts=new Array(this.bins).fill(0);
+    vals.forEach(v=>{let i=Math.floor((v-mn)/bw);if(i>=this.bins)i=this.bins-1;counts[i]++;});
+    const cmax=Math.max(...counts);
+    const a=axes({x:64,y:42,w:358,h:196},{x0:mn,x1:mx,y0:0,y1:cmax+1},{x:COLS[this.col].label,y:'HOW MANY',ticks:4});
+    const xr=358/(mx-mn);
+    counts.forEach((n,i)=>{
+      const bx=64+i*(358/this.bins),bwd=358/this.bins-3;
+      const hh=(n/cmax)*190;
+      CX.fillStyle='#b06bff';
+      CX.fillRect(bx,238-hh,bwd,hh);
+      CX.strokeStyle='#000';CX.lineWidth=2;CX.strokeRect(bx,238-hh,bwd,hh);
+      if(n>0&&bwd>16){
+        CX.fillStyle='#fff6e6';CX.font='7px "Press Start 2P"';CX.textAlign='center';
+        CX.fillText(n,bx+bwd/2,238-hh-4);CX.textAlign='left';
+      }
+    });
+    if(this.showMM){
+      const mean=vals.reduce((s,v)=>s+v,0)/vals.length;
+      const sorted=[...vals].sort((a,b)=>a-b),med=sorted[Math.floor(sorted.length/2)];
+      const xm=64+(mean-mn)*xr,xd=64+(med-mn)*xr;
+      CX.strokeStyle='#5dd75d';CX.lineWidth=3;
+      CX.beginPath();CX.moveTo(xm,42);CX.lineTo(xm,238);CX.stroke();
+      CX.strokeStyle='#ffd23e';CX.setLineDash([5,4]);
+      CX.beginPath();CX.moveTo(xd,42);CX.lineTo(xd,238);CX.stroke();CX.setLineDash([]);
+      CX.font='7px "Press Start 2P"';CX.fillStyle='#5dd75d';CX.fillText('MEAN',xm+3,50);
+      CX.fillStyle='#ffd23e';CX.fillText('MID',xd+3,62);
+    }
+    CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.textAlign='center';
+    CX.fillText(this.bins+' BOXES',W/2,284);CX.textAlign='left';
+  },
+  say:'Pile the creatures up by size! Each tower counts how many fit in that slice. <b>Fewer boxes</b> = one big lump. <b>More boxes</b> = lots of skinny towers. <span style="color:#8a8ab8;">(big word: histogram)</span>',
+  sowhat:'Bars just count how many creatures land in each box.',
+  quiz:[
+    {q:'What does one bar show?',o:['One creature','How many creatures are in that range','The biggest creature'],a:1,why:'One bar = one box = a count.'},
+    {q:'Too many skinny boxes and the picture...',o:['Gets clearer','Gets noisy and spiky','Stays the same'],a:1,why:'Tiny boxes = noise. Box size is your choice!'}
+  ]
+},
+/* ---------------- 0.4 ---------------- */
+{
+  id:'0.4',name:'THE CUDDLE BOX',real:'box plots',icon:'📦',sub:'half of them, squished',
+  build(){
+    this.col='flipper';this.lo=25;this.hi=75;
+    this.ctrl([{t:'STRIPES',f:()=>{this.col='bill';this.lo=25;this.hi=75;}},
+               {t:'WIDTH',f:()=>{this.col='flipper';this.lo=25;this.hi=75;}},
+               {t:'WEIGHT',f:()=>{this.col='mass';this.lo=25;this.hi=75;}}]);
+  },
+  stats(){
+    const v=DATA.map(d=>d[this.col]).sort((a,b)=>a-b);
+    const q=p=>v[Math.min(v.length-1,Math.floor(p/100*v.length))];
+    return {min:v[0],max:v[v.length-1],med:q(50),lo:q(this.lo),hi:q(this.hi),all:v};
+  },
+  draw(){
+    clearCv();playArea();
+    const s=this.stats(),mn=Math.min(...s.all),mx=Math.max(...s.all);
+    const a=axes({x:64,y:38,w:358,h:118},{x0:mn,x1:mx,y0:0,y1:1},{x:COLS[this.col].label,y:'',ticks:4});
+    const xr=358/(mx-mn);
+    const bins=14,bw=(mx-mn)/bins,counts=new Array(bins).fill(0);
+    s.all.forEach(v=>{let i=Math.floor((v-mn)/bw);if(i>=bins)i=bins-1;counts[i]++;});
+    const cmax=Math.max(...counts);
+    counts.forEach((n,i)=>{
+      const bx=64+i*(358/bins),bwd=358/bins-3,hh=(n/cmax)*96;
+      const centre=mn+bw*(i+0.5);
+      CX.fillStyle=(centre>=s.lo&&centre<=s.hi)?'#ff8fd0':'#3d3d7a';
+      CX.fillRect(bx,156-hh,bwd,hh);
+    });
+    CX.fillStyle='#c8c8e8';CX.font='7px "Press Start 2P"';
+    CX.fillText('PINK = THE CUDDLE HALF',64,36);
+    // the box
+    const yb=212,bh=34;
+    CX.strokeStyle='#fff6e6';CX.lineWidth=3;
+    CX.beginPath();CX.moveTo(64+(s.min-mn)*xr,yb+bh/2);CX.lineTo(64+(s.max-mn)*xr,yb+bh/2);CX.stroke();
+    [s.min,s.max].forEach(v=>{const x=64+(v-mn)*xr;CX.beginPath();CX.moveTo(x,yb+7);CX.lineTo(x,yb+bh-7);CX.stroke();});
+    const x1=64+(s.lo-mn)*xr,x3=64+(s.hi-mn)*xr;
+    CX.fillStyle='#ff8fd0';CX.fillRect(x1,yb,x3-x1,bh);
+    CX.strokeStyle='#000';CX.lineWidth=3;CX.strokeRect(x1,yb,x3-x1,bh);
+    const xm=64+(s.med-mn)*xr;
+    CX.strokeStyle='#141433';CX.lineWidth=4;
+    CX.beginPath();CX.moveTo(xm,yb);CX.lineTo(xm,yb+bh);CX.stroke();
+    /* ---- say what each part of the box IS, right on the picture ---- */
+    CX.font='7px "Press Start 2P"';CX.fillStyle='#fff6e6';
+    CX.fillText('SMALLEST',Math.max(20,64+(s.min-mn)*xr-24),yb-6);
+    CX.fillText('BIGGEST',Math.min(400,64+(s.max-mn)*xr-18),yb-6);
+    CX.fillStyle='#ff8fd0';
+    CX.fillText('MIDDLE HALF',x1+4,yb+bh+14);
+    // grab handles on the pink edges
+    [[x1,'◀'],[x3,'▶']].forEach(([hx])=>{
+      CX.fillStyle='#ff8fd0';CX.fillRect(hx-7,yb+bh/2-7,14,14);
+      CX.strokeStyle='#000';CX.lineWidth=2;CX.strokeRect(hx-7,yb+bh/2-7,14,14);
+    });
+    CX.fillStyle='#141433';CX.font='7px "Press Start 2P"';
+    CX.fillText('MIDDLE',xm-18,yb+bh/2+3);
+    CX.fillStyle='#c8c8e8';CX.font='7px "Press Start 2P"';
+    CX.fillText('DRAG THE PINK HANDLES!',64,yb+bh+34);
+  },
+  drag(p){
+    const s=this.stats(),mn=Math.min(...s.all),mx=Math.max(...s.all);
+    const val=(p.x-64)/358*(mx-mn)+mn;
+    const pct=Math.round(s.all.filter(v=>v<=val).length/s.all.length*100);
+    const xl=64+(s.lo-mn)/(mx-mn)*358, xh=64+(s.hi-mn)/(mx-mn)*358;
+    if(Math.abs(p.x-xl)<Math.abs(p.x-xh)) this.lo=Math.max(2,Math.min(48,pct));
+    else this.hi=Math.min(98,Math.max(52,pct));
+    this.draw();
+  },
+  say:'Squish half the creatures into a <b>pink box</b>. The dark line inside marks the middle one. Drag the pink handles and watch who gets let in! <span style="color:#8a8ab8;">(big word: box plot)</span>',
+  sowhat:'A box squishes a whole column down to just five numbers.',
+  quiz:[
+    {q:'What is inside the pink box?',o:['Everybody','The middle half of the creatures','Only the middle one'],a:1,why:'The box is the middle half.'},
+    {q:'Why use a box instead of bars?',o:['Boxes are prettier','Lots of boxes fit side by side','It shows every creature'],a:1,why:'Boxes are tiny, so you can line up many at once.'}
+  ]
+},
+/* ---------------- 0.5 ---------------- */
+{
+  id:'0.5',name:'THE SNAP LINE',real:'correlation (r)',icon:'📈',sub:'do they move together?',
+  build(){
+    this.pts=[];this.mode='line';this.make();
+    this.ctrl([{t:'↺ LINE',f:()=>this.make('line')},{t:'↺ BLOB',f:()=>this.make('blob')},
+               {t:'↺ U SHAPE',f:()=>this.make('curve')},{t:'↺ RING',f:()=>this.make('circle')}]);
+  },
+  make(kind){
+    this.mode=kind||this.mode;this.pts=[];
+    for(let i=0;i<34;i++){
+      let x=Math.random(),y;
+      if(this.mode==='line')y=0.15+x*0.7+(Math.random()-0.5)*0.22;
+      else if(this.mode==='blob')y=0.5+(Math.random()-0.5)*0.9;
+      else if(this.mode==='curve')y=0.12+4*(x-0.5)*(x-0.5)+(Math.random()-0.5)*0.06;
+      else{const ang=Math.random()*6.283,r=0.34+(Math.random()-0.5)*0.1;x=0.5+Math.cos(ang)*r;y=0.5+Math.sin(ang)*r;}
+      this.pts.push({x:Math.max(0.03,Math.min(0.97,x)),y:Math.max(0.03,Math.min(0.97,y))});
+    }
+    this.draw();
+  },
+  r(){
+    const n=this.pts.length,mx=this.pts.reduce((s,p)=>s+p.x,0)/n,my=this.pts.reduce((s,p)=>s+p.y,0)/n;
+    let sxy=0,sxx=0,syy=0;
+    this.pts.forEach(p=>{sxy+=(p.x-mx)*(p.y-my);sxx+=(p.x-mx)**2;syy+=(p.y-my)**2;});
+    return {r:sxy/Math.sqrt(sxx*syy||1),mx,my,sxy,sxx};
+  },
+  draw(){
+    clearCv();playArea();
+    const a=axes({x:64,y:42,w:358,h:190},{x0:0,x1:1,y0:0,y1:1},{x:'SIZE',y:'SPEED',ticks:4});
+    const st=this.r();
+    const slope=st.sxy/(st.sxx||1),icpt=st.my-slope*st.mx;
+    CX.strokeStyle='#5dd75d';CX.lineWidth=4;
+    CX.beginPath();CX.moveTo(a.X(0),a.Y(icpt));CX.lineTo(a.X(1),a.Y(icpt+slope));CX.stroke();
+    this.pts.forEach((p,i)=>faceAt(a.X,a.Y,p.x,p.y,7,'#4dc3ff',(i)%13===0));
+    const rv=st.r;
+    const col=rv>0.6?'#5dd75d':rv>0.25?'#ffd23e':'#ff4d5e';
+    const lean=Math.abs(rv)<0.2?'FLAT':(rv>0?'UP':'DOWN');
+    /* ---- a big friendly meter for r, so the number means something ---- */
+    const mx0=24,my0=16,mw=180,mh=16;
+    CX.fillStyle='#141433';CX.fillRect(mx0,my0,mw,mh);
+    CX.strokeStyle='#3d3d7a';CX.lineWidth=2;CX.strokeRect(mx0,my0,mw,mh);
+    const half=mw/2;
+    if(rv>=0){CX.fillStyle=col;CX.fillRect(mx0+half,my0+2,rv*half,mh-4);}
+    else{CX.fillStyle=col;CX.fillRect(mx0+half+rv*half,my0+2,-rv*half,mh-4);}
+    CX.strokeStyle='#fff6e6';CX.lineWidth=2;
+    CX.beginPath();CX.moveTo(mx0+half,my0);CX.lineTo(mx0+half,my0+mh);CX.stroke();
+    CX.font='7px "Press Start 2P"';CX.fillStyle='#8a8ab8';
+    CX.textAlign='left';CX.fillText('-1',mx0,my0+mh+11);
+    CX.textAlign='center';CX.fillText('0',mx0+half,my0+mh+11);
+    CX.textAlign='right';CX.fillText('+1',mx0+mw,my0+mh+11);
+    CX.textAlign='left';
+    CX.font='13px "Press Start 2P"';CX.fillStyle=col;
+    CX.fillText('r = '+rv.toFixed(2),mx0,my0+50);
+    CX.font='7px "Press Start 2P"';CX.fillStyle='#fff6e6';
+    CX.fillText(lean==='FLAT'?'NO LINE AT ALL':(lean==='UP'?'LEANS UP':'LEANS DOWN'),mx0,my0+66);
+    CX.fillStyle='#8a8ab8';
+    CX.fillText(Math.abs(rv)>0.6?'TIGHT HUG':Math.abs(rv)>0.25?'A BIT LOOSE':'ALL OVER',mx0,my0+79);
+    CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.textAlign='center';
+    CX.fillText('DRAG A CREATURE!',W/2,284);CX.textAlign='left';
+  },
+  drag(p){
+    const x=Math.max(0.03,Math.min(0.97,(p.x-64)/358));
+    const y=Math.max(0.03,Math.min(0.97,1-(p.y-42)/190));
+    let best=null,bd=1e9;
+    this.pts.forEach(q=>{const dx=(64+q.x*358)-p.x,dy=(42+(1-q.y)*190)-p.y,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;best=q;}});
+    if(best&&bd<1200){best.x=x;best.y=y;this.draw();}
+  },
+  say:'The green line is the <b>snap line</b>. <b>r</b> is one number that tells you two things: <b>which way</b> the line leans, and <b>how tightly</b> everyone hugs it. Watch the meter while you drag! <span style="color:#8a8ab8;">(big word: correlation)</span>',
+  sowhat:'r tells you two things: which way the line leans, and how tightly everyone hugs it.',
+  quiz:[
+    {q:'The dots make a perfect U. What is r?',o:['Close to 1','Close to 0','Close to −1'],a:1,why:'A straight line can\'t hug a U! The pattern is real, the line is wrong.'},
+    {q:'r = 0.95 means...',o:['A causes B','The dots hug a line going up','The data is broken'],a:1,why:'Only direction and tightness. Never "because".'}
+  ]
+},
+/* ---------------- 0.6 ---------------- */
+{
+  id:'0.6',name:'TOO MANY CREATURES!',real:'overplotting & density',icon:'🌫️',sub:'the blob problem',
+  build(){
+    this.n=200;this.alpha=1;this.density=false;this.pts=[];
+    for(let i=0;i<4000;i++){
+      const g=(Math.random()+Math.random()+Math.random()+Math.random()-2)/2;
+      const g2=(Math.random()+Math.random()+Math.random()+Math.random()-2)/2;
+      this.pts.push({x:0.5+g*0.6,y:0.5+g2*0.6+g*0.25});
+    }
+    this.ctrl([{t:'− 1000',f:()=>{this.n=Math.max(50,this.n-1000);}},
+               {t:'+ 1000',f:()=>{this.n=Math.min(4000,this.n+1000);}},
+               {t:'👻 SEE-THROUGH',f:()=>{this.alpha=this.alpha===1?0.08:1;}},
+               {t:'🌈 COUNT COLOURS',f:()=>{this.density=!this.density;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const a=axes({x:64,y:42,w:358,h:190},{x0:0,x1:1,y0:0,y1:1},{x:'SIZE',y:'SPEED',ticks:4});
+    const pts=this.pts.slice(0,this.n);
+    if(this.density){
+      const G=16,grid={};
+      pts.forEach(p=>{const k=Math.floor(p.x*G)+','+Math.floor(p.y*G);grid[k]=(grid[k]||0)+1;});
+      const mx=Math.max(...Object.values(grid));
+      for(let gx=0;gx<G;gx++)for(let gy=0;gy<G;gy++){
+        const c=grid[gx+','+gy]||0;if(!c)continue;
+        const t=c/mx;
+        CX.fillStyle='rgb('+Math.round(40+t*215)+','+Math.round(70+t*150)+','+Math.round(150-t*30)+')';
+        CX.fillRect(a.X(gx/G),a.Y((gy+1)/G),358/G,190/G);
+      }
+    }else{
+      pts.forEach(p=>dotAt(a.X,a.Y,p.x,p.y,2.2,'#4dc3ff',this.alpha));
+    }
+    CX.fillStyle='#ffd23e';CX.font='10px "Press Start 2P"';CX.fillText(this.n+' CREATURES',24,34);
+  },
+  say:'Turn it up! A few hundred and you can see the crowd. Thousands and they <b>fuse into one blob</b> — the crowd vanishes. Make them see-through, or count the colours, to get it back. <span style="color:#8a8ab8;">(big word: overplotting)</span>',
+  sowhat:'Too many dots look the same — until you change how you draw them.',
+  quiz:[
+    {q:'Your dots are one solid blob. What helps?',o:['Delete some dots','See-through dots, or counting colours','Bigger dots'],a:1,why:'Never delete the evidence!'},
+    {q:'Counting colours works because...',o:['It hides dots','The colour becomes "how many are here"','It\'s prettier'],a:1,why:'Same data, but colour now means a count.'}
+  ]
+},
+/* ---------------- 0.7 ---------------- */
+{
+  id:'0.7',name:'TRICKY PICTURES',real:'misleading charts',icon:'🎭',sub:'these charts are lying!',
+  build(){
+    this.which=0;this.broken=[true,true,true,true];
+    this.ctrl([{t:'1 ZOOMED',f:()=>{this.which=0;}},{t:'2 TWO SIDES',f:()=>{this.which=1;}},
+               {t:'3 PIE',f:()=>{this.which=2;}},{t:'4 WRONG ORDER',f:()=>{this.which=3;}},
+               {t:'🔧 FIX IT!',f:()=>{this.broken[this.which]=!this.broken[this.which];}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const bad=this.broken[this.which];
+    const vals=[42,44,43,45,46,47];
+    CX.font='8px "Press Start 2P"';
+    if(this.which===0){
+      const y0=bad?42:0;
+      const a=axes({x:66,y:46,w:344,h:180},{x0:0,x1:6,y0:y0,y1:48},{x:'MONTH',y:'CANDY',ticks:4});
+      vals.forEach((v,i)=>{
+        CX.fillStyle=bad?'#ff4d5e':'#5dd75d';
+        const hh=(v-y0)/(48-y0)*176;
+        CX.fillRect(66+i*57,226-hh,44,hh);
+      });
+      CX.fillStyle=bad?'#ff4d5e':'#5dd75d';CX.fillText(bad?'✖ BOTTOM STARTS AT 42':'✔ BOTTOM STARTS AT 0',24,34);
+      CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+      CX.fillText(bad?'LOOKS LIKE A ROCKET!':'really only a tiny rise',24,284);
+    }else if(this.which===1){
+      axes({x:66,y:46,w:344,h:180},{x0:0,x1:6,y0:0,y1:100},{x:'MONTH',y:'LEFT SIDE',ticks:4});
+      CX.strokeStyle='#4dc3ff';CX.lineWidth=4;CX.beginPath();
+      vals.forEach((v,i)=>{const x=66+i*57+22,y=226-v/50*176;i?CX.lineTo(x,y):CX.moveTo(x,y);});CX.stroke();
+      const b=[100,60,40,30,25,20];
+      CX.strokeStyle='#ffd23e';CX.beginPath();
+      b.forEach((v,i)=>{const x=66+i*57+22,y=226-v/100*176;i?CX.lineTo(x,y):CX.moveTo(x,y);});CX.stroke();
+      CX.fillStyle='#4dc3ff';CX.fillText('CANDY',24,190);
+      CX.fillStyle='#ffd23e';CX.fillText('PRICE',24,210);
+      CX.fillStyle=bad?'#ff4d5e':'#5dd75d';CX.fillText(bad?'✖ TWO SIDES, ONE CHART':'✔ TWO CHARTS',24,34);
+      CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+      CX.fillText(bad?'"candy crashes as price falls"':'two things, two charts',24,284);
+    }else if(this.which===2){
+      const parts=[45,30,15,7,3],cols=['#ff4d5e','#4dc3ff','#ffd23e','#5dd75d','#b06bff'];
+      if(bad){
+        let ang=-Math.PI/2;const cx=W/2,cy=158,R=84;
+        parts.forEach((v,i)=>{
+          const sl=v/100*Math.PI*2;
+          CX.fillStyle=cols[i];CX.beginPath();CX.moveTo(cx,cy);CX.arc(cx,cy,R,ang,ang+sl);CX.closePath();CX.fill();
+          CX.strokeStyle='#000';CX.lineWidth=2;CX.stroke();ang+=sl;
+        });
+        CX.fillStyle='#ff4d5e';CX.fillText('✖ 5-SLICE PIE',24,34);
+        CX.fillStyle='#c8c8e8';CX.fillText('which tiny slice is biggest?',24,284);
+      }else{
+        axes({x:66,y:46,w:344,h:170},{x0:0,x1:5,y0:0,y1:50},{x:'TEAM',y:'SHARE',ticks:4});
+        parts.forEach((v,i)=>{CX.fillStyle=cols[i];CX.fillRect(66+i*69,216-v/50*170,54,v/50*170);});
+        CX.fillStyle='#5dd75d';CX.fillText('✔ BARS',24,34);
+        CX.fillStyle='#c8c8e8';CX.fillText('now the order is obvious',24,284);
+      }
+    }else{
+      const v2=bad?[42,46,43,47,44,45]:[42,43,44,45,46,47];
+      axes({x:66,y:46,w:344,h:180},{x0:0,x1:6,y0:bad?0:40,y1:48},{x:'ORDER',y:'SCORE',ticks:4});
+      CX.strokeStyle=bad?'#ff4d5e':'#5dd75d';CX.lineWidth=4;CX.beginPath();
+      v2.forEach((v,i)=>{const x=66+i*57+22,y=226-(v-(bad?0:40))/(48-(bad?0:40))*176;i?CX.lineTo(x,y):CX.moveTo(x,y);});CX.stroke();
+      CX.fillStyle=bad?'#ff4d5e':'#5dd75d';CX.fillText(bad?'✖ LINE THROUGH STUFF':'✔ SORTED BARS',24,34);
+      CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+      CX.fillText(bad?'"it goes up and down!" (it doesn\'t)':'sorted, the trend is real',24,284);
+    }
+  },
+  say:'Every one of these pictures shows <b>the same six numbers</b>. Only the drawing changed. Hit <b>FIX IT!</b> on each one and watch the lie disappear. <span style="color:#8a8ab8;">(big word: misleading charts)</span>',
+  sowhat:'The same numbers can look like opposite stories. The numbers never warn you.',
+  quiz:[
+    {q:'The bottom of a bar chart starts at 90, not 0. What happens?',o:['Nothing','Tiny differences look huge','The bars vanish'],a:1,why:'Zooming the bottom stretches small gaps into drama.'},
+    {q:'Five slices in a pie. Can you compare them?',o:['Yes, easily','No — use bars','Only the biggest'],a:1,why:'Past ~4 slices a pie can\'t be read. Bars can.'}
+  ]
+},
+/* ---------------- 0.8 ---------------- */
+{
+  id:'0.8',name:'TEAMS',real:'bar charts & grouping',icon:'🧮',sub:'comparing groups',
+  build(){
+    this.grouped=false;
+    this.ctrl([{t:'ONE BAR EACH',f:()=>{this.grouped=false;}},
+               {t:'SPLIT BY TEAM',f:()=>{this.grouped=true;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const cols=['bill','flipper','mass'],names=['STRIPES','WIDTH','WEIGHT'];
+    axes({x:66,y:46,w:344,h:180},{x0:0,x1:3,y0:0,y1:this.grouped?7000:200},{x:'THING',y:'SIZE',ticks:4});
+    if(!this.grouped){
+      cols.forEach((c,i)=>{
+        const v=DATA.reduce((s,d)=>s+d[c],0)/DATA.length;
+        const hh=v/200*176;
+        CX.fillStyle=['#ff4d5e','#4dc3ff','#ffd23e'][i];
+        CX.fillRect(66+i*112+20,226-hh,72,hh);
+        CX.strokeStyle='#000';CX.lineWidth=2;CX.strokeRect(66+i*112+20,226-hh,72,hh);
+        CX.fillStyle='#fff6e6';CX.font='7px "Press Start 2P"';CX.fillText(names[i],66+i*112+24,246);
+      });
+      CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.fillText('THE AVERAGE OF EACH COLUMN',24,34);
+    }else{
+      ['red','blue','gold'].forEach((sp,si)=>cols.forEach((c,ci)=>{
+        const rows=DATA.filter(d=>d.species===sp);
+        const v=rows.reduce((s,d)=>s+d[c],0)/rows.length;
+        const hh=v/7000*176;
+        CX.fillStyle=COLOR[sp];
+        CX.fillRect(66+ci*112+12+si*24,226-hh,20,hh);
+        CX.strokeStyle='#000';CX.lineWidth=2;CX.strokeRect(66+ci*112+12+si*24,226-hh,20,hh);
+      }));
+      CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+      CX.fillText('RED / BLUE / GOLD TEAMS',24,34);
+      CX.fillText('STRIPES',78,246);CX.fillText('WIDTH',196,246);CX.fillText('WEIGHT',308,246);
+    }
+  },
+  say:'Bars let you compare. Split each bar by <b>team</b> and you can ask a new question: is one team bigger than another? Look at WEIGHT — the teams are clearly different! <span style="color:#8a8ab8;">(big word: grouped bar chart)</span>',
+  sowhat:'Bars compare things. Grouping them compares teams.',
+  quiz:[
+    {q:'Comparing three teams — bars or pie?',o:['Pie','Bars','A dot cloud'],a:1,why:'Bars compare. Pies split a whole.'},
+    {q:'What does splitting by team add?',o:['More colours','A second question: is one team different?','Bigger numbers'],a:1,why:'Now you compare within and between teams.'}
+  ]
+},
+/* ---------------- 0.9 ---------------- */
+{
+  id:'0.9',name:'TIME TRAIL',real:'time series & smoothing',icon:'⏱️',sub:'order matters!',
+  build(){
+    this.win=1;this.showRaw=true;this.series=[];
+    let v=100;
+    for(let i=0;i<48;i++){v+=1.2+(Math.random()-0.5)*14;this.series.push(v);}
+    this.ctrl([{t:'− SMOOTH',f:()=>{this.win=Math.max(1,this.win-2);}},
+               {t:'+ SMOOTH',f:()=>{this.win=Math.min(15,this.win+2);}},
+               {t:'WIGGLY LINE',f:()=>{this.showRaw=!this.showRaw;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const s=this.series,mn=Math.min(...s)-10,mx=Math.max(...s)+10;
+    const a=axes({x:64,y:42,w:358,h:190},{x0:0,x1:48,y0:mn,y1:mx},{x:'DAY',y:'MOOD',ticks:4});
+    if(this.showRaw){
+      CX.strokeStyle='#4a4a8a';CX.lineWidth=2;CX.beginPath();
+      s.forEach((v,i)=>{const x=a.X(i),y=a.Y(v);i?CX.lineTo(x,y):CX.moveTo(x,y);});CX.stroke();
+    }
+    CX.strokeStyle='#ffd23e';CX.lineWidth=4;CX.beginPath();
+    let started=false;
+    for(let i=0;i<s.length;i++){
+      const from=Math.max(0,i-this.win),slice=s.slice(from,i+1);
+      const av=slice.reduce((x,y)=>x+y,0)/slice.length;
+      const x=a.X(i),y=a.Y(av);
+      if(!started){CX.moveTo(x,y);started=true;}else CX.lineTo(x,y);
+    }
+    CX.stroke();
+    CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+    CX.fillText('GOLD = '+this.win+'-DAY SMOOTH',24,34);
+    CX.fillText('THE ORDER OF THE DOTS MATTERS HERE',24,284);
+  },
+  say:'When the bottom is <b>time</b>, the order of the dots matters. The gold line is the smoothed version. More smoothing makes it calmer — but slower to notice a change. <span style="color:#8a8ab8;">(big word: time series)</span>',
+  sowhat:'If the order matters, the picture has to show the order.',
+  quiz:[
+    {q:'Why not use a dot cloud for time data?',o:['Too many dots','It loses the order, and order is the point','It\'s slower'],a:1,why:'Time isn\'t just another column.'},
+    {q:'More smoothing makes the gold line...',o:['Calmer but slower to react','Longer','Disappear'],a:0,why:'Smoothing trades speed for calm.'}
+  ]
+},
+/* ---------------- 0.10 ---------------- */
+{
+  id:'0.10',name:'LOTS OF COLUMNS',real:'multivariate plots',icon:'🧩',sub:'you can only see two',
+  build(){
+    this.mode='matrix';
+    this.ctrl([{t:'ALL THE PAIRS',f:()=>{this.mode='matrix';}},
+               {t:'A NUMBER FOR EACH',f:()=>{this.mode='heat';}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const cols=['bill','flipper','mass'],names=['STRIPES','WIDTH','WEIGHT'];
+    if(this.mode==='matrix'){
+      CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.fillText('EVERY PAIR, SIDE BY SIDE',24,34);
+      const s=104,ox=62,oy=52;
+      cols.forEach((cy,ri)=>cols.forEach((cx_,ci)=>{
+        const bx=ox+ci*s,by=oy+ri*s;
+        CX.fillStyle='#1a1a40';CX.fillRect(bx,by,s-6,s-6);
+        CX.strokeStyle='#3d3d7a';CX.lineWidth=2;CX.strokeRect(bx,by,s-6,s-6);
+        const c1=COLS[cx_],c2=COLS[cy];
+        DATA.forEach(d=>{
+          const px=bx+4+(d[cx_]-c1.min)/(c1.max-c1.min)*(s-14);
+          const py=by+(s-12)-(d[cy]-c2.min)/(c2.max-c2.min)*(s-14);
+          CX.fillStyle=COLOR[d.species];CX.beginPath();CX.arc(px,py,2.4,0,7);CX.fill();
+        });
+        if(ri===cols.length-1){CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';CX.fillText(names[ci],bx,oy+3*s+4);}
+      }));
+      CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';
+      CX.fillText('STRIP',4,oy+52);CX.fillText('WIDTH',6,oy+156);CX.fillText('WT',22,oy+260);
+    }else{
+      CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.fillText('ONE NUMBER PER PAIR',24,34);
+      const corr=(a,b)=>{
+        const A=DATA.map(d=>d[a]),B=DATA.map(d=>d[b]);
+        const ma=A.reduce((x,y)=>x+y,0)/A.length,mb=B.reduce((x,y)=>x+y,0)/B.length;
+        let sxy=0,sxx=0,syy=0;
+        A.forEach((v,i)=>{sxy+=(v-ma)*(B[i]-mb);sxx+=(v-ma)**2;syy+=(B[i]-mb)**2;});
+        return sxy/Math.sqrt(sxx*syy||1);
+      };
+      const s=110,ox=100,oy=52;
+      cols.forEach((cy,ri)=>cols.forEach((cx_,ci)=>{
+        const r=corr(cx_,cy),bx=ox+ci*s,by=oy+ri*s,t=(r+1)/2;
+        CX.fillStyle='rgb('+Math.round(50+t*200)+','+Math.round(70+t*120)+','+Math.round(150-t*80)+')';
+        CX.fillRect(bx,by,s-6,s-6);
+        CX.strokeStyle='#000';CX.lineWidth=2;CX.strokeRect(bx,by,s-6,s-6);
+        CX.fillStyle='#fff';CX.font='9px "Press Start 2P"';CX.fillText(r.toFixed(2),bx+20,by+56);
+        if(ri===cols.length-1){CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';CX.fillText(names[ci],bx,oy+3*s+4);}
+      }));
+      CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';
+      CX.fillText('STRIPES',6,oy+56);CX.fillText('WIDTH',12,oy+166);CX.fillText('WT',32,oy+276);
+    }
+  },
+  say:'A screen shows two columns nicely and three badly. With more, you tile every pair — or squash each pair into <b>one number</b>. Either way you\'re choosing what to hide. That\'s why we learn to pick good columns next! <span style="color:#8a8ab8;">(big word: multivariate data)</span>',
+  sowhat:'You can only see two columns at once. The rest become a grid or a number.',
+  quiz:[
+    {q:'You have 8 columns. What do you do first?',o:['Draw all 8 at once','Draw every pair, or a number grid','Ignore 7 of them'],a:1,why:'Pairs or a correlation grid — and accept you\'re hiding things.'},
+    {q:'Each cell in the number grid shows...',o:['Every dot','One number for that pair of columns','The average of everything'],a:1,why:'One r per pair.'}
+  ]
+},
+{
+  id:'1.1',name:'WHO IS THE ANSWER?',real:'features vs. the label',icon:'🎯',sub:'pick the answer',
+  build(){
+    this.target='stripes';this.showBad=false;
+    this.ctrl([{t:'ANSWER = STRIPES',f:()=>{this.target='stripes';this.showBad=false;}},
+               {t:'ANSWER = KIND',f:()=>{this.target='kind';this.showBad=false;}},
+               {t:'😱 CHEAT!',f:()=>{this.showBad=true;this.target='stripes';}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const a=axes({x:70,y:52,w:352,h:180},{x0:30,x1:60,y0:170,y1:245},
+                 {x:'STRIPES',y:'WIDTH',ticks:4});
+    DATA.forEach((d,i)=>{
+      const col=(this.target==='kind')?COLOR[d.species]:'#8a8ab8';
+      faceAt(a.X,a.Y,d.bill,d.flipper,7,col,(i+this.blink)%17===0);
+    });
+    // the answer badge
+    CX.font='8px "Press Start 2P"';
+    CX.fillStyle='#8a8ab8';CX.fillText('WHAT WE WANT TO KNOW:',26,30);
+    CX.fillStyle='#ffd23e';
+    CX.fillText(this.target==='stripes'?'HOW MANY STRIPES':'WHICH KIND',26,42);
+    CX.fillStyle='#8a8ab8';CX.fillText('WHAT WE ARE ALLOWED TO SEE: STRIPES + WIDTH',26,244);
+    if(this.showBad){
+      CX.fillStyle='rgba(255,77,94,.92)';CX.fillRect(14,14,W-28,H-28);
+      CX.fillStyle='#fff';CX.font='11px "Press Start 2P"';
+      CX.textAlign='center';
+      CX.fillText('CHEATING!',W/2,120);
+      CX.font='8px "Press Start 2P"';
+      CX.fillText('we used STRIPES to guess STRIPES',W/2,148);
+      CX.fillText('perfect score — and totally useless',W/2,168);
+      CX.textAlign='left';
+    }
+  },
+  say:'Some columns are the <b>answer</b> you want, and some are the <b>clues</b> you\'re allowed to use. Switch which one is the answer and the colours change. Then try <b>CHEAT!</b> — using the answer as a clue.',
+  sowhat:'Clues are what you know. The answer is what you want to know.',
+  quiz:[
+    {q:'A clue should be...',o:['Something you know before guessing','The answer itself','Always a number'],a:0,why:'Clues are what you have at guessing time.'},
+    {q:'Using the answer as a clue gives...',o:['A perfect score that means nothing','A better model','More data'],a:0,why:'That\'s cheating, and it fails in the real world.'}
+  ]
+},
+/* ---------------- 1.2 ---------------- */
+{
+  id:'1.2',name:'WHAT KIND OF COLUMN?',real:'feature types',icon:'🏷️',sub:'numbers or names?',
+  build(){
+    this.col='stripes';
+    this.ctrl([{t:'STRIPES',f:()=>{this.col='stripes';}},{t:'WIDTH',f:()=>{this.col='width';}},
+               {t:'KIND',f:()=>{this.col='kind';}},{t:'TREAT AS NUMBER',f:()=>{this.col='kindnum';}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const kinds={
+      stripes:{t:'NUMBER',ok:true, why:'3, 4, 5 — you can add these up',plot:'num',key:'bill'},
+      width:{t:'NUMBER',ok:true, why:'real sizes — you can average them',plot:'num',key:'flipper'},
+      kind:{t:'NAME',ok:true, why:'CANDY / GUMMY / COOKIE — no order, no adding',plot:'cat',key:'species'},
+      kindnum:{t:'NUMBER?!',ok:false, why:'CANDY=1, GUMMY=2, COOKIE=3 invents an order!',plot:'fake',key:'species'}
+    };
+    const k=kinds[this.col];
+    CX.font='8px "Press Start 2P"';
+    CX.fillStyle=k.ok?'#5dd75d':'#ff4d5e';
+    CX.fillText(k.ok?'✔ '+k.t:'✖ '+k.t,26,30);
+    CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';CX.fillText(k.why,26,46);
+    if(k.plot==='num'){
+      const c=COLS[k.key];
+      const a=axes({x:70,y:60,w:352,h:170},{x0:c.min,x1:c.max,y0:0,y1:20},{x:c.label,y:'HOW MANY',ticks:4});
+      const vals=DATA.map(d=>d[k.key]),mn=c.min,mx=c.max,bins=8,bw=(mx-mn)/bins;
+      const counts=new Array(bins).fill(0);
+      vals.forEach(v=>{let i=Math.floor((v-mn)/bw);if(i>=bins)i=bins-1;counts[i]++;});
+      const cmax=Math.max(...counts);
+      counts.forEach((n,i)=>{
+        const hh=n/cmax*150;
+        CX.fillStyle='#5dd75d';
+        CX.fillRect(70+i*(352/bins),230-hh,352/bins-3,hh);
+      });
+    }else if(k.plot==='cat'){
+      const specs=['red','blue','gold'];
+      specs.forEach((sp,i)=>{
+        const n=DATA.filter(d=>d.species===sp).length;
+        const hh=n/22*150;
+        CX.fillStyle=COLOR[sp];
+        CX.fillRect(120+i*90,230-hh,64,hh);
+        CX.fillStyle='#fff6e6';CX.font='7px "Press Start 2P"';
+        CX.fillText(TAG[sp],112+i*90,246);
+      });
+      CX.fillStyle='#8a8ab8';CX.font='8px "Press Start 2P"';CX.fillText('THREE PILES, NO ORDER',26,74);
+    }else{
+      // the fake: treating names as numbers
+      const a=axes({x:70,y:60,w:352,h:170},{x0:0,x1:4,y0:0,y1:60},{x:'KIND AS A NUMBER',y:'STRIPES',ticks:4});
+      DATA.forEach((d,i)=>{
+        const num=d.species==='red'?1:d.species==='blue'?2:3;
+        faceAt(a.X,a.Y,num+(Math.random()-0.5)*0.5,d.bill,6,COLOR[d.species],(i+this.blink)%17===0);
+      });
+      CX.fillStyle='#ff4d5e';CX.font='7px "Press Start 2P"';
+      CX.fillText('COOKIE "3" looks BIGGER than CANDY "1"!',26,58);
+    }
+  },
+  say:'Some columns are <b>numbers</b> you can add up. Some are just <b>names</b>. If you turn names into 1, 2, 3, the computer thinks COOKIE is <b>three times</b> CANDY. It isn\'t!',
+  sowhat:'Numbers can be added. Names can only be counted.',
+  quiz:[
+    {q:'KIND is CANDY / GUMMY / COOKIE. What kind of column?',o:['A number','A name (category)','A date'],a:1,why:'No order, no adding — it\'s a name.'},
+    {q:'Turning names into 1, 2, 3 is bad because...',o:['It\'s slower','It invents an order that isn\'t there','It uses too much space'],a:1,why:'The computer will think 3 is bigger than 1.'}
+  ]
+},
+/* ---------------- 1.3 ---------------- */
+{
+  id:'1.3',name:'YES/NO COLUMNS',real:'one-hot encoding',icon:'🔀',sub:'names → yes/no',
+  build(){
+    this.onehot=true;
+    this.ctrl([{t:'1, 2, 3',f:()=>{this.onehot=false;}},
+               {t:'YES/NO COLUMNS',f:()=>{this.onehot=true;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    CX.font='8px "Press Start 2P"';
+    if(!this.onehot){
+      CX.fillStyle='#ff4d5e';CX.fillText('✖ ONE COLUMN OF NUMBERS',26,30);
+      const rows=DATA.slice(0,8);
+      CX.font='7px "Press Start 2P"';
+      CX.fillStyle='#8a8ab8';CX.fillText('#   KIND   AS A NUMBER',26,54);
+      rows.forEach((d,i)=>{
+        const num=d.species==='red'?1:d.species==='blue'?2:3;
+        CX.fillStyle='#fff6e6';
+        CX.fillText(String(d.id),26,74+i*24);
+        CX.fillStyle=COLOR[d.species];CX.fillText(TAG[d.species],72,74+i*24);
+        CX.fillStyle='#fff6e6';CX.fillText(String(num),230,74+i*24);
+      });
+      CX.fillStyle='#ff4d5e';CX.font='7px "Press Start 2P"';
+      CX.fillText('COOKIE=3 means "more than" GUMMY=2',26,278);
+    }else{
+      CX.fillStyle='#5dd75d';CX.fillText('✔ ONE YES/NO COLUMN EACH',26,30);
+      CX.font='7px "Press Start 2P"';
+      CX.fillStyle='#8a8ab8';
+      CX.fillText('#',26,54);CX.fillText('CANDY?',72,54);CX.fillText('GUMMY?',150,54);CX.fillText('COOKIE?',228,54);
+      DATA.slice(0,8).forEach((d,i)=>{
+        const y=76+i*24;
+        CX.fillStyle='#fff6e6';CX.fillText(String(d.id),26,y);
+        ['red','blue','gold'].forEach((sp,j)=>{
+          const on=d.species===sp;
+          CX.fillStyle=on?'#5dd75d':'#3d3d7a';
+          CX.fillText(on?'1':'0',72+j*78,y);
+        });
+        CX.fillStyle=COLOR[d.species];
+        CX.fillRect(320,y-8,10,10);
+      });
+      CX.fillStyle='#5dd75d';CX.font='7px "Press Start 2P"';
+      CX.fillText('every row has exactly one 1',26,278);
+    }
+  },
+  say:'The computer can only do sums, so it needs numbers. Instead of turning names into 1, 2, 3, give each name its <b>own yes/no column</b>. Three kinds = three columns, each saying 1 or 0.',
+  sowhat:'Give each name its own yes/no column — never a made-up number.',
+  quiz:[
+    {q:'Three kinds of creature. How many yes/no columns?',o:['One','Three','None'],a:1,why:'One column per kind.'},
+    {q:'In one row, how many of those columns are 1?',o:['Exactly one','All of them','None'],a:0,why:'Each creature is exactly one kind.'}
+  ]
+},
+/* ---------------- 1.4 ---------------- */
+{
+  id:'1.4',name:'THE MISSING BITS',real:'missing data',icon:'🕳️',sub:'holes in the table',
+  build(){
+    this.mode='drop';this.gone=0.3;
+    this.ctrl([{t:'🗑 DROP ROWS',f:()=>{this.mode='drop';}},
+               {t:'🎯 FILL WITH AVERAGE',f:()=>{this.mode='fill';}},
+               {t:'🏷 FILL + FLAG',f:()=>{this.mode='flag';}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const cut=Math.floor(DATA.length*this.gone);
+    // the surviving set: the ones we pretend we still have
+    let kept=DATA.slice(cut);
+    const a=axes({x:70,y:56,w:352,h:168},{x0:30,x1:60,y0:170,y1:245},{x:'STRIPES',y:'WIDTH',ticks:4});
+    if(this.mode==='drop'){
+      kept.forEach((d,i)=>faceAt(a.X,a.Y,d.bill,d.flipper,7,COLOR[d.species],(i+this.blink)%17===0));
+      CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';
+      CX.fillText('WIDTH MISSING FOR '+cut+' CREATURES → WE DELETED THEM',26,34);
+      CX.fillStyle='#ff4d5e';
+      CX.fillText('we lost '+Math.round(this.gone*100)+'% of everyone!',26,48);
+      CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';
+      CX.fillText('DOTS LEFT: '+kept.length,26,246);
+    }else if(this.mode==='fill'){
+      const avg=kept.reduce((s,d)=>s+d.flipper,0)/kept.length;
+      kept.forEach((d,i)=>{
+        faceAt(a.X,a.Y,d.bill,d.flipper,7,COLOR[d.species],(i+this.blink)%17===0);
+      });
+      for(let i=0;i<cut;i++){
+        const d=DATA[i];
+        faceAt(a.X,a.Y,d.bill,avg,7,'#8a8ab8',(i+this.blink)%17===0);
+      }
+      CX.fillStyle='#ffd23e';CX.font='7px "Press Start 2P"';
+      CX.fillText('GREY = FILLED WITH THE AVERAGE ('+Math.round(avg)+')',26,34);
+      CX.fillStyle='#8a8ab8';CX.fillText('they all sit on one line — a made-up fact',26,48);
+    }else{
+      const avg=kept.reduce((s,d)=>s+d.flipper,0)/kept.length;
+      kept.forEach((d,i)=>faceAt(a.X,a.Y,d.bill,d.flipper,7,COLOR[d.species],(i+this.blink)%17===0));
+      for(let i=0;i<cut;i++){
+        const d=DATA[i];
+        faceAt(a.X,a.Y,d.bill,avg,7,'#ff8fd0',(i+this.blink)%17===0);
+        CX.strokeStyle='#ff8fd0';CX.lineWidth=2;
+        CX.beginPath();CX.arc(a.X(d.bill),a.Y(avg),11,0,7);CX.stroke();
+      }
+      CX.fillStyle='#5dd75d';CX.font='7px "Press Start 2P"';
+      CX.fillText('FILLED WITH AVERAGE + A PINK "I GUESSED" MARK',26,34);
+      CX.fillStyle='#8a8ab8';CX.fillText('now the computer knows which ones are guesses',26,48);
+    }
+  },
+  say:'Some creatures are missing a measurement. You can <b>delete</b> them (you lose friends!), <b>fill</b> with the average (all on one line — fake), or fill <b>and mark</b> that it was a guess. Marking is best!',
+  sowhat:'Filling a hole is a guess — so say that you guessed.',
+  quiz:[
+    {q:'Deleting rows with holes is bad when...',o:['There are lots of them','You lose creatures you needed','Never'],a:1,why:'You might delete exactly the ones that mattered.'},
+    {q:'Filling everyone with the average makes them...',o:['More spread out','All sit on one line','Bigger'],a:1,why:'A real spread got replaced by one fake value.'}
+  ]
+},
+/* ---------------- 1.5 ---------------- */
+{
+  id:'1.5',name:'THE ODD ONE OUT',real:'outliers',icon:'🎈',sub:'one big weirdo',
+  build(){
+    this.pts=[];
+    for(let i=0;i<22;i++){
+      const g=(Math.random()+Math.random()+Math.random()-1.5);
+      this.pts.push({x:0.5+g*0.25,y:0.5+g*0.25});
+    }
+    this.odd={x:0.85,y:0.88};
+    this.ctrl([{t:'↺ NEW DATA',f:()=>{this.build();}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const a=axes({x:70,y:56,w:352,h:168},{x0:0,x1:1,y0:0,y1:1},{x:'SIZE',y:'SPEED',ticks:4});
+    const all=this.pts.concat([this.odd]);
+    this.pts.forEach((p,i)=>faceAt(a.X,a.Y,p.x,p.y,6,'#4dc3ff',(i+this.blink)%17===0));
+    faceAt(a.X,a.Y,this.odd.x,this.odd.y,8,'#ff4d5e',false);
+    const mean=all.reduce((s,p)=>s+p.x,0)/all.length;
+    const withOut=all.reduce((s,p)=>s+p.x,0)/all.length;
+    const without=this.pts.reduce((s,p)=>s+p.x,0)/this.pts.length;
+    const sorted=all.map(p=>p.x).sort((a,b)=>a-b);
+    const med=sorted[Math.floor(sorted.length/2)];
+    const medNo=this.pts.map(p=>p.x).sort((a,b)=>a-b)[Math.floor(this.pts.length/2)];
+    CX.font='7px "Press Start 2P"';
+    CX.fillStyle='#5dd75d';CX.fillText('AVERAGE  '+withOut.toFixed(2)+'   (without him: '+without.toFixed(2)+')',26,34);
+    CX.fillStyle='#ffd23e';CX.fillText('MIDDLE   '+med.toFixed(2)+'   (without him: '+medNo.toFixed(2)+')',26,48);
+    CX.strokeStyle='#5dd75d';CX.lineWidth=3;
+    CX.beginPath();CX.moveTo(a.X(withOut),56);CX.lineTo(a.X(withOut),224);CX.stroke();
+    CX.strokeStyle='#ffd23e';CX.setLineDash([5,4]);
+    CX.beginPath();CX.moveTo(a.X(med),56);CX.lineTo(a.X(med),224);CX.stroke();CX.setLineDash([]);
+    CX.fillStyle='#c8c8e8';CX.font='7px "Press Start 2P"';
+    CX.fillText('DRAG THE RED ONE!',26,240);
+  },
+  drag(p){
+    this.odd.x=Math.max(0.02,Math.min(1.15,(p.x-70)/352));
+    this.odd.y=Math.max(0.02,Math.min(1.1,1-(p.y-56)/168));
+    this.draw();
+  },
+  say:'One creature is way out there. Drag him around! The <b>green average</b> chases him all over the place. The <b>gold middle</b> barely moves. That\'s the difference between them.',
+  sowhat:'One extreme creature drags the average — the middle hardly notices.',
+  quiz:[
+    {q:'One huge value appears. Which moves most?',o:['The average','The middle (median)','Neither'],a:0,why:'The average gets pulled by extremes.'},
+    {q:'An odd one out is...',o:['Always a mistake','Sometimes a real, rare creature','Always ignored'],a:1,why:'Look before you delete!'}
+  ]
+},
+/* ---------------- 1.6 ---------------- */
+{
+  id:'1.6',name:'SAME SIZE?',real:'scaling',icon:'📏',sub:'units trick the computer',
+  build(){
+    this.scale=1;this.scaled=false;
+    this.ctrl([{t:'×10 WIDTH',f:()=>{this.scale=this.scale*10;}},
+               {t:'↺ RESET UNITS',f:()=>{this.scale=1;this.scaled=false;}},
+               {t:'✅ MAKE THEM FAIR',f:()=>{this.scaled=!this.scaled;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const s=this.scaled?1:this.scale;
+    const xs=DATA.map(d=>d.bill);
+    const ys=DATA.map(d=>d.flipper*s);
+    const a=axes({x:70,y:56,w:352,h:168},
+      {x0:30,x1:60,y0:Math.min(...ys)-5,y1:Math.max(...ys)+5},
+      {x:'STRIPES',y:'WIDTH ×'+s,ticks:4});
+    DATA.forEach((d,i)=>faceAt(a.X,a.Y,d.bill,d.flipper*s,7,COLOR[d.species],(i+this.blink)%17===0));
+    CX.font='7px "Press Start 2P"';
+    if(!this.scaled&&this.scale>1){
+      CX.fillStyle='#ff4d5e';CX.fillText('✖ WIDTH IS NOW '+this.scale+'× BIGGER',26,34);
+      CX.fillStyle='#8a8ab8';CX.fillText('the two columns are no longer the same size',26,48);
+    }else{
+      CX.fillStyle='#5dd75d';CX.fillText('✔ BOTH COLUMNS ARE THE SAME SIZE',26,34);
+      CX.fillStyle='#8a8ab8';CX.fillText('same creatures — just fair units',26,48);
+    }
+  },
+  say:'The two columns were measured in different units. If one column\'s numbers are 10× bigger, the computer thinks it matters 10× more. <b>MAKE THEM FAIR</b> squashes both onto the same ruler.',
+  sowhat:'Bigger numbers don\'t mean bigger importance — but the computer thinks they do.',
+  quiz:[
+    {q:'One column is in grams, another in kilos. What happens?',o:['Nothing','The grams column dominates','They cancel out'],a:1,why:'The bigger numbers shout louder.'},
+    {q:'Scaling a column changes...',o:['The units, not the creatures','The creatures','The answers'],a:0,why:'Same data, fairer units.'}
+  ]
+},
+/* ---------------- 1.7 ---------------- */
+{
+  id:'1.7',name:'SQUASH THE TAIL',real:'log transforms',icon:'🐘',sub:'one long tail',
+  build(){
+    this.log=false;
+    this.vals=[];
+    for(let i=0;i<60;i++){this.vals.push(Math.round(10*Math.exp(Math.random()*3.2)));}
+    this.ctrl([{t:'RAW',f:()=>{this.log=false;}},{t:'🐘 SQUASH IT',f:()=>{this.log=true;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const v=this.log?this.vals.map(x=>Math.log(x+1)):this.vals.slice();
+    const mn=Math.min(...v),mx=Math.max(...v);
+    const bins=10,bw=(mx-mn)/bins||1;
+    const counts=new Array(bins).fill(0);
+    v.forEach(x=>{let i=Math.floor((x-mn)/bw);if(i>=bins)i=bins-1;counts[i]++;});
+    const cmax=Math.max(...counts);
+    const a=axes({x:70,y:56,w:352,h:168},{x0:mn,x1:mx,y0:0,y1:cmax+1},
+      {x:this.log?'SQUASHED SIZE':'SIZE',y:'HOW MANY',ticks:4});
+    counts.forEach((n,i)=>{
+      const hh=n/cmax*150;
+      CX.fillStyle=this.log?'#5dd75d':'#ff4d5e';
+      CX.fillRect(70+i*(352/bins),224-hh,352/bins-3,hh);
+    });
+    CX.font='7px "Press Start 2P"';
+    CX.fillStyle=this.log?'#5dd75d':'#ff4d5e';
+    CX.fillText(this.log?'✔ SQUASHED — now you can see the shape':'✖ ONE TOWER AND A LONG TAIL',26,34);
+    CX.fillStyle='#8a8ab8';CX.fillText(this.log?'the tail got pulled in':'a few huge values squash everyone else',26,48);
+  },
+  say:'A few creatures are <b>enormous</b>, so everyone else gets squashed into one tower. Squashing the numbers with a trick called <b>log</b> pulls the big ones in, and suddenly you can see the real shape.',
+  sowhat:'Squashing a long tail lets you see everyone else.',
+  quiz:[
+    {q:'Why is a long tail a problem?',o:['It looks ugly','It hides all the normal creatures','It\'s rare'],a:1,why:'Everyone else gets squashed into one bar.'},
+    {q:'After squashing, the numbers are...',o:['Wrong','Just on a friendlier ruler','Deleted'],a:1,why:'Same creatures, friendlier scale.'}
+  ]
+},
+/* ---------------- 1.8 ---------------- */
+{
+  id:'1.8',name:'MAKE A NEW COLUMN',real:'feature engineering',icon:'🧪',sub:'invent a better clue',
+  build(){
+    this.newCol=false;
+    this.ctrl([{t:'STRIPES ONLY',f:()=>{this.newCol=false;}},
+               {t:'STRIPES ÷ WIDTH',f:()=>{this.newCol=true;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const key=d=>this.newCol?(d.bill/d.flipper*1000):d.bill;
+    const vals=DATA.map(key);
+    const mn=Math.min(...vals),mx=Math.max(...vals);
+    const a=axes({x:70,y:56,w:352,h:168},{x0:mn,x1:mx,y0:0,y1:3},
+      {x:this.newCol?'STRIPES ÷ WIDTH':'STRIPES',y:'KIND',ticks:4});
+    ['red','blue','gold'].forEach((sp,i)=>{
+      const d=DATA.filter(x=>x.species===sp);
+      d.forEach((x,j)=>faceAt(a.X,a.Y,key(x),i+0.5,7,COLOR[sp],(j+this.blink)%13===0));
+    });
+    CX.font='7px "Press Start 2P"';
+    CX.fillStyle=this.newCol?'#5dd75d':'#ffd23e';
+    CX.fillText(this.newCol?'✔ ONE COLUMN, THREE TIDY ROWS':'✖ ONE COLUMN, ALL MIXED UP',26,34);
+    CX.fillStyle='#8a8ab8';
+    CX.fillText(this.newCol?'stripes÷width separates them perfectly':'stripes alone overlaps a lot',26,48);
+  },
+  say:'Neither column alone tells you the kind. But <b>stripes ÷ width</b> — a column that didn\'t exist before — sorts them into three tidy rows. Making new columns is the real superpower.',
+  sowhat:'A clever new column beats a fancier model.',
+  quiz:[
+    {q:'Where do new columns come from?',o:['Thin air','Combining columns you already have','The internet'],a:1,why:'Ratios, differences, parts of dates…'},
+    {q:'A good new column...',o:['Splits the kinds apart','Adds noise','Is always a sum'],a:0,why:'That\'s the whole point.'}
+  ]
+},
+/* ---------------- 1.9 ---------------- */
+{
+  id:'1.9',name:'TOO GOOD TO BE TRUE',real:'data leakage',icon:'🚨',sub:'the sneaky clue',
+  build(){
+    this.leak=true;
+    this.ctrl([{t:'😇 HONEST CLUES',f:()=>{this.leak=false;}},
+               {t:'🕵️ SNEAKY CLUE',f:()=>{this.leak=true;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const a=axes({x:70,y:56,w:352,h:168},{x0:0,x1:1,y0:0,y1:1},{x:'CLUE 1',y:'CLUE 2',ticks:4});
+    DATA.forEach((d,i)=>{
+      let x,y;
+      if(this.leak){
+        const off=d.species==='red'?0.12:d.species==='blue'?0.5:0.88;
+        x=off+(Math.random()-0.5)*0.1;y=off+(Math.random()-0.5)*0.1;
+      }else{
+        x=(d.bill-30)/30;y=(d.flipper-170)/75;
+      }
+      faceAt(a.X,a.Y,x,y,7,COLOR[d.species],(i+this.blink)%17===0);
+    });
+    CX.font='8px "Press Start 2P"';
+    if(this.leak){
+      CX.fillStyle='#ff4d5e';CX.fillText('SCORE: 100%',26,34);
+      CX.fillStyle='#ff4d5e';CX.font='7px "Press Start 2P"';
+      CX.fillText('too perfect. one clue already knows the answer',26,48);
+    }else{
+      CX.fillStyle='#5dd75d';CX.fillText('SCORE: 82%',26,34);
+      CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';
+      CX.fillText('good — and it will still work tomorrow',26,48);
+    }
+  },
+  say:'One of these clues is <b>cheating</b> — it secretly contains the answer. The score shoots to 100% and looks amazing. But in the real world that clue won\'t exist, and the model will fall apart.',
+  sowhat:'If the score is too good, look for a clue that already knows the answer.',
+  quiz:[
+    {q:'Your model scores 100%. First thing to do?',o:['Celebrate','Hunt for a sneaky clue','Add more data'],a:1,why:'Suspiciously good = leakage.'},
+    {q:'Leakage usually shows up as...',o:['An error message','A perfect score that fails later','Slowness'],a:1,why:'It never throws an error — it just lies.'}
+  ]
+},
+{
+  id:'2.1',name:'NOISE MAKERS',real:'why fewer features help',icon:'🔊',sub:'junk clues',
+  build(){
+    this.noise=0;
+    this.ctrl([{t:'− JUNK',f:()=>{this.noise=Math.max(0,this.noise-1);}},
+               {t:'+ JUNK',f:()=>{this.noise=Math.min(8,this.noise+1);}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    // real clue = stripes ; junk clues are random
+    const a=axes({x:70,y:56,w:352,h:168},{x0:30,x1:60,y0:0,y1:3},{x:'STRIPES',y:'KIND',ticks:4});
+    ['red','blue','gold'].forEach((sp,i)=>{
+      DATA.filter(d=>d.species===sp).forEach((d,j)=>{
+        faceAt(a.X,a.Y,d.bill,i+0.5,6,COLOR[sp],(j+this.blink)%13===0);
+      });
+    });
+    CX.font='8px "Press Start 2P"';
+    CX.fillStyle='#8a8ab8';CX.fillText('GOOD CLUES: 1',26,34);
+    CX.fillStyle=this.noise>3?'#ff4d5e':'#ffd23e';
+    CX.fillText('JUNK CLUES: '+this.noise,26,48);
+    // junk columns drawn as little bars
+    for(let i=0;i<this.noise;i++){
+      const x=380+ (i%2)*40, y=26+Math.floor(i/2)*26;
+      CX.fillStyle='#3d3d7a';CX.fillRect(x,y,34,20);
+      CX.fillStyle='#ff4d5e';CX.font='7px "Press Start 2P"';CX.fillText('?',x+12,y+14);
+    }
+    const score=Math.max(30,88-this.noise*7);
+    CX.fillStyle=score<60?'#ff4d5e':score<75?'#ffd23e':'#5dd75d';
+    CX.font='11px "Press Start 2P"';CX.fillText(score+'%',26,240);
+    CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';CX.fillText('SCORE',110,240);
+  },
+  say:'Every extra column is a chance for the computer to find a <b>coincidence</b> and believe it. Add junk clues and the score keeps dropping, even though the real clue never changed.',
+  sowhat:'More columns give the computer more chances to be confidently wrong.',
+  quiz:[
+    {q:'Adding junk columns usually makes the model...',o:['Better','Worse','Unchanged'],a:1,why:'It starts believing coincidences.'},
+    {q:'The best number of columns is...',o:['As many as possible','Enough to carry the clues','Always 3'],a:1,why:'Enough, not more.'}
+  ]
+},
+/* ---------------- 2.2 ---------------- */
+{
+  id:'2.2',name:'TWIN COLUMNS',real:'redundant features',icon:'👯',sub:'the same clue twice',
+  build(){
+    this.twins=false;
+    this.ctrl([{t:'NORMAL',f:()=>{this.twins=false;}},{t:'👯 ADD A TWIN',f:()=>{this.twins=true;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const cols=['STRIPES','WIDTH','WEIGHT',this.twins?'STRIPES 2':null];
+    const cols2=cols.filter(Boolean);
+    CX.font='8px "Press Start 2P"';CX.fillStyle='#8a8ab8';
+    CX.fillText('HOW MUCH EACH COLUMN MATTERS',26,30);
+    const n=cols2.length;
+    cols2.forEach((c,i)=>{
+      const isTwin=c==='STRIPES 2';
+      const h=(isTwin?26:70);
+      const x=70+i*(352/n)+8, w=352/n-20;
+      CX.fillStyle=isTwin?'#ff4d5e':'#5dd75d';
+      CX.fillRect(x,230-h,w,h);
+      CX.fillStyle='#fff6e6';CX.font='7px "Press Start 2P"';
+      CX.fillText(c,x,246);
+      CX.fillText(h+'%',x,220-h);
+    });
+    if(this.twins){
+      CX.fillStyle='#ff4d5e';CX.font='7px "Press Start 2P"';
+      CX.fillText('the two stripes columns split the credit — and neither looks important',26,278);
+    }
+  },
+  say:'A twin column carries <b>exactly the same information</b>. The computer splits the credit between the two, so neither looks important — and the explanation becomes useless.',
+  sowhat:'Two copies of a clue is still one clue — and it muddles the credit.',
+  quiz:[
+    {q:'An exact duplicate column...',o:['Adds information','Adds nothing and splits the credit','Doubles the score'],a:1,why:'It\'s one clue wearing a hat.'},
+    {q:'How do you spot twins?',o:['Correlation near 1','They look similar','You can\'t'],a:0,why:'A correlation grid shows them instantly.'}
+  ]
+},
+/* ---------------- 2.3 ---------------- */
+{
+  id:'2.3',name:'RANK THE CLUES',real:'filter methods',icon:'🏁',sub:'score each one alone',
+  build(){
+    this.k=4;this.keep=[];
+    this.ctrl([{t:'− KEEP FEWER',f:()=>{this.k=Math.max(1,this.k-1);}},
+               {t:'+ KEEP MORE',f:()=>{this.k=Math.min(7,this.k+1);}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const feats=[
+      {n:'STRIPES',s:0.82},{n:'WIDTH',s:0.74},{n:'WEIGHT',s:0.31},
+      {n:'LUCK',s:0.24},{n:'SHOE',s:0.12},{n:'RAIN',s:0.08},{n:'JUNK',s:0.03}
+    ].sort((a,b)=>b.s-a.s);
+    CX.font='8px "Press Start 2P"';CX.fillStyle='#8a8ab8';
+    CX.fillText('EACH CLUE SCORED ON ITS OWN',26,30);
+    feats.forEach((f,i)=>{
+      const y=52+i*30;
+      const kept=i<this.k;
+      CX.fillStyle=kept?'#5dd75d':'#3d3d7a';
+      CX.fillRect(150,y-14,f.s*400,20);
+      CX.fillStyle='#fff6e6';CX.font='7px "Press Start 2P"';
+      CX.fillText(f.n,26,y);
+      CX.fillStyle=kept?'#5dd75d':'#8a8ab8';
+      CX.fillText(kept?'KEEP':'drop',150+f.s*400+6,y);
+    });
+    // the cutoff line
+    if(this.k<feats.length){
+      const y=52+this.k*30-20;
+      CX.strokeStyle='#ffd23e';CX.setLineDash([6,4]);CX.lineWidth=3;
+      CX.beginPath();CX.moveTo(140,y);CX.lineTo(W-20,y);CX.stroke();CX.setLineDash([]);
+    }
+  },
+  say:'A filter scores every column <b>on its own</b>, then keeps the top ones. Fast and simple! But it never notices two clues that only work <b>together</b> — that\'s the catch.',
+  sowhat:'A filter judges each clue alone — cheap, fast, and blind to teamwork.',
+  quiz:[
+    {q:'A filter method scores columns...',o:['All together','One at a time','Never'],a:1,why:'Each clue is judged alone.'},
+    {q:'What does a filter miss?',o:['Nothing','Clues that only work together','Big values'],a:1,why:'Teamwork is invisible to it.'}
+  ]
+},
+/* ---------------- 2.4 ---------------- */
+{
+  id:'2.4',name:'TRY THEM IN TEAMS',real:'wrapper methods',icon:'🧑‍🤝‍🧑',sub:'step by step',
+  build(){
+    this.step=0;
+    this.path=[
+      {add:'STRIPES',score:62},
+      {add:'WIDTH',score:74},
+      {add:'WEIGHT',score:79},
+      {add:'LUCK',score:76},
+      {add:'RAIN',score:74}
+    ];
+    this.ctrl([{t:'▶ NEXT TRY',f:()=>{this.step=Math.min(this.path.length,this.step+1);}},
+               {t:'↺ START OVER',f:()=>{this.step=0;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    CX.font='8px "Press Start 2P"';CX.fillStyle='#8a8ab8';
+    CX.fillText('ADD ONE CLUE AT A TIME — KEEP IT IF BETTER',26,30);
+    let prev=50;
+    this.path.forEach((p,i)=>{
+      const done=i<this.step;
+      const x=60+i*72, h=p.score/100*170;
+      CX.fillStyle=done?(p.score>=prev?'#5dd75d':'#ff4d5e'):'#3d3d7a';
+      CX.fillRect(x,230-h,50,h);
+      CX.fillStyle='#fff6e6';CX.font='7px "Press Start 2P"';
+      CX.fillText(p.add,x-4,246);
+      CX.fillStyle=done?'#fff6e6':'#5f5f96';
+      CX.fillText(done?p.score+'%':'?',x+10,222-h);
+      prev=done?p.score:prev;
+    });
+    const best=this.path.slice(0,this.step).reduce((a,b)=>b.score>a.score?b:a,{score:50,add:'none'});
+    CX.fillStyle='#ffd23e';CX.font='8px "Press Start 2P"';
+    CX.fillText('BEST SO FAR: '+best.score+'%',26,278);
+  },
+  say:'Wrappers actually <b>try</b> clues in teams: add one, train, keep it if the score goes up. It catches teamwork — but it costs a lot of tries, and the score can wobble.',
+  sowhat:'Wrappers ask the computer which clues it likes — and pay for the answer.',
+  quiz:[
+    {q:'A wrapper method...',o:['Scores each column alone','Tries teams of columns','Never trains'],a:1,why:'It tests real combinations.'},
+    {q:'A score going DOWN after adding a clue means...',o:['Keep it anyway','Drop it','Add more'],a:1,why:'That clue made things worse.'}
+  ]
+},
+/* ---------------- 2.5 ---------------- */
+{
+  id:'2.5',name:'THE SHRINKING CLUES',real:'lasso vs ridge',icon:'✂️',sub:'weights to zero',
+  build(){
+    this.pen=0;this.mode='lasso';
+    this.ctrl([{t:'✂️ LASSO',f:()=>{this.mode='lasso';}},
+               {t:'🔵 RIDGE',f:()=>{this.mode='ridge';}},
+               {t:'− LESS SHRINK',f:()=>{this.pen=Math.max(0,this.pen-1);}},
+               {t:'+ MORE SHRINK',f:()=>{this.pen=Math.min(5,this.pen+1);}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const feats=[{n:'STRIPES',w:0.9},{n:'WIDTH',w:0.7},{n:'WEIGHT',w:0.4},{n:'LUCK',w:0.15},{n:'RAIN',w:0.05}];
+    CX.font='8px "Press Start 2P"';CX.fillStyle='#8a8ab8';
+    CX.fillText(this.mode==='lasso'?'✂️ LASSO — snips weak clues to ZERO':'🔵 RIDGE — shrinks but never to zero',26,30);
+    feats.forEach((f,i)=>{
+      let w;
+      if(this.mode==='lasso') w=Math.max(0,f.w-this.pen*0.22);
+      else w=f.w/(1+this.pen*0.9);
+      const y=56+i*32;
+      const gone=(this.mode==='lasso'&&w<=0);
+      CX.fillStyle=gone?'#3d3d7a':(this.mode==='lasso'?'#5dd75d':'#4dc3ff');
+      CX.fillRect(150,y-14,w*380,20);
+      CX.fillStyle='#fff6e6';CX.font='7px "Press Start 2P"';
+      CX.fillText(f.n,26,y);
+      CX.fillStyle=gone?'#ff4d5e':'#8a8ab8';
+      CX.fillText(gone?'DELETED':w.toFixed(2),150+w*380+6,y);
+    });
+    CX.fillStyle='#c8c8e8';CX.font='7px "Press Start 2P"';
+    CX.fillText('SHRINK LEVEL: '+this.pen,26,278);
+  },
+  say:'Lasso and ridge both <b>shrink</b> weak clues. The difference: lasso snips them all the way to <b>zero</b> — that\'s deleting them. Ridge makes them tiny but never zero, so nothing actually gets deleted.',
+  sowhat:'Lasso deletes clues by making their weight exactly zero.',
+  quiz:[
+    {q:'Which one actually DELETES a clue?',o:['Lasso','Ridge','Neither'],a:0,why:'Lasso hits exactly zero.'},
+    {q:'Ridge leaves weak clues...',o:['Deleted','Tiny but still there','Huge'],a:1,why:'Shrunk, not removed.'}
+  ]
+},
+/* ---------------- 2.6 ---------------- */
+{
+  id:'2.6',name:'EMPTY SPACE',real:'curse of dimensionality',icon:'🌌',sub:'more columns, more nothing',
+  build(){
+    this.dims=2;
+    this.ctrl([{t:'− COLUMN',f:()=>{this.dims=Math.max(1,this.dims-1);}},
+               {t:'+ COLUMN',f:()=>{this.dims=Math.min(30,this.dims+1);}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const d=this.dims;
+    // average distance between random points in a unit cube grows with dimensions
+    const dist=Math.sqrt(d/6);
+    const fill=Math.min(1,20/Math.pow(2,d-1));
+    // draw dots spread out by dimension
+    const n=Math.min(60,20);
+    for(let i=0;i<n;i++){
+      const ang=(i*2.399)*1;
+      const rr=Math.min(0.48,0.1+d*0.03);
+      const x=0.5+Math.cos(ang)*rr*(0.6+Math.random()*0.4);
+      const y=0.5+Math.sin(ang)*rr*(0.6+Math.random()*0.4);
+      faceAt((v)=>14+v*(W-28),(v)=>14+v*(H-28),x,y,5,['#ff4d5e','#4dc3ff','#ffd23e'][i%3],(i+this.blink)%13===0);
+    }
+    CX.fillStyle='#141433';CX.fillRect(14,14,250,54);
+    CX.font='9px "Press Start 2P"';CX.fillStyle='#ffd23e';
+    CX.fillText('COLUMNS: '+d,26,38);
+    CX.font='7px "Press Start 2P"';CX.fillStyle='#8a8ab8';
+    CX.fillText('AVERAGE GAP: '+dist.toFixed(2),26,56);
+    CX.fillStyle=d>10?'#ff4d5e':'#5dd75d';
+    CX.fillText(d>10?'EVERYTHING IS FAR FROM EVERYTHING':'still crowded',26,254);
+  },
+  say:'Every time you add a column, the space gets <b>bigger</b> and the creatures get further apart. After a while "nearest" means nothing — everything is far away, and you\'d need millions more creatures to fill the space.',
+  sowhat:'In lots of columns everything is far from everything else.',
+  quiz:[
+    {q:'Adding columns makes the space...',o:['Smaller and cosier','Bigger and emptier','The same'],a:1,why:'Points spread into emptiness.'},
+    {q:'Why does this hurt?',o:['"Nearest" stops meaning anything','It\'s slower','It uses more memory'],a:0,why:'Distances become meaningless.'}
+  ]
+},
+{
+  id:'3.1',name:'ASK THE NEIGHBOURS',real:'k-nearest neighbours',icon:'🌲',sub:'who lives nearby?',
+  build(){
+    this.K=3;this.mystery=null;
+    this.pts=[];scatter(this.pts,16);
+    this.ctrl([{t:'− K',f:()=>{this.K=Math.max(1,this.K-2);}},
+               {t:'+ K',f:()=>{this.K=Math.min(9,this.K+2);}},
+               {t:'🎲 NEW CREATURES',f:()=>{scatter(this.pts,16);this.mystery=null;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const a={X:v=>v,Y:v=>v};
+    this.pts.forEach((p,i)=>faceAt(a.X,a.Y,p.x,p.y,7,COLOR[p.cls],(i+this.blink)%13===0));
+    if(this.mystery){
+      const v=knnVote(this.pts,this.mystery.x,this.mystery.y,this.K);
+      v.near.forEach(n=>{
+        CX.strokeStyle=COLOR[n.p.cls];CX.lineWidth=2;CX.setLineDash([4,4]);
+        CX.beginPath();CX.moveTo(this.mystery.x,this.mystery.y);CX.lineTo(n.p.x,n.p.y);CX.stroke();
+      });
+      CX.setLineDash([]);
+      faceAt(a.X,a.Y,this.mystery.x,this.mystery.y,9,COLOR[v.pred],false);
+      CX.font='8px "Press Start 2P"';
+      CX.fillStyle='#8a8ab8';CX.fillText('VOTES: '+v.ember+' CANDY vs '+v.aqua+' GUMMY',26,282);
+    }else{
+      CX.font='8px "Press Start 2P"';CX.fillStyle='#ffd23e';
+      CX.fillText('TAP TO DROP A MYSTERY CREATURE',26,282);
+    }
+    CX.fillStyle='#fff6e6';CX.font='8px "Press Start 2P"';CX.fillText('K = '+this.K,26,30);
+  },
+  click(p){this.mystery={x:p.x,y:p.y};sfx.pop();this.draw();},
+  say:'This is <b>kNN</b> — the one from the woods! Drop a mystery creature. It asks its <b>K closest neighbours</b> what they are, and the most popular answer wins. Change K and watch the answer flip!',
+  sowhat:'kNN doesn\'t learn rules — it just asks whoever is closest.',
+  quiz:[
+    {q:'How does kNN decide?',o:['It learns rules','The closest neighbours vote','It picks at random'],a:1,why:'Neighbours vote.'},
+    {q:'A very big K makes guesses...',o:['Sharper','Blurrier','The same'],a:1,why:'Far-away neighbours start voting too.'}
+  ]
+},
+/* ---------------- 3.2 ---------------- */
+{
+  id:'3.2',name:'DRAW THE LINE',real:'linear regression',icon:'📉',sub:'the best straight line',
+  build(){
+    this.slope=0.5;this.icpt=0.25;
+    this.ctrl([{t:'↺ SNAP TO BEST',f:()=>{this.snap();}},
+               {t:'− SLOPE',f:()=>{this.slope=Math.max(-1,this.slope-0.1);}},
+               {t:'+ SLOPE',f:()=>{this.slope=Math.min(1.6,this.slope+0.1);}}]);
+  },
+  snap(){
+    const n=DATA.length;
+    const xs=DATA.map(d=>d.bill),ys=DATA.map(d=>d.flipper);
+    const mx=xs.reduce((a,b)=>a+b,0)/n,my=ys.reduce((a,b)=>a+b,0)/n;
+    let sxy=0,sxx=0;
+    for(let i=0;i<n;i++){sxy+=(xs[i]-mx)*(ys[i]-my);sxx+=(xs[i]-mx)**2;}
+    const s=sxy/sxx, b=my-s*mx;
+    this.slope=(s*(60-30))/(245-170);
+    this.icpt=((b+s*30)-170)/(245-170);
+  },
+  draw(){
+    clearCv();playArea();
+    const a=axes({x:70,y:56,w:352,h:168},{x0:30,x1:60,y0:170,y1:245},{x:'STRIPES',y:'WIDTH',ticks:4});
+    DATA.forEach((d,i)=>faceAt(a.X,a.Y,d.bill,d.flipper,6,COLOR[d.species],(i+this.blink)%17===0));
+    // our line in plot space
+    CX.strokeStyle='#ffd23e';CX.lineWidth=4;
+    CX.beginPath();
+    for(let t=0;t<=1;t+=0.02){
+      const x=30+t*30, y=170+(this.icpt+this.slope*t)*75;
+      const px=a.X(x),py=a.Y(y);
+      t===0?CX.moveTo(px,py):CX.lineTo(px,py);
+    }
+    CX.stroke();
+    CX.font='8px "Press Start 2P"';CX.fillStyle='#8a8ab8';
+    CX.fillText('DRAG THE LINE UP AND DOWN',26,30);
+    CX.fillStyle='#c8c8e8';CX.font='7px "Press Start 2P"';CX.fillText('TAP THE PICTURE TO TILT IT',26,282);
+  },
+  click(p){
+    this.icpt=Math.max(-0.2,Math.min(1.1,1-(p.y-56)/168));
+    this.draw();
+  },
+  drag(p){
+    this.icpt=Math.max(-0.2,Math.min(1.1,1-(p.y-56)/168));
+    this.slope=Math.max(-1,Math.min(1.6,(p.x-70)/352*2-0.2));
+    this.draw();
+  },
+  say:'A <b>line</b> guesses by sliding up and down. Drag it and try to get it as close to everyone as you can. <b>SNAP TO BEST</b> shows the line the computer would pick.',
+  sowhat:'A straight line guesses by following the trend.',
+  quiz:[
+    {q:'Linear regression draws...',o:['A curve','The best straight line','A box'],a:1,why:'A line, chosen to be as close as possible.'},
+    {q:'It works best when the creatures...',o:['Form a curve','Roughly follow a straight trend','Are random'],a:1,why:'A line can\'t bend.'}
+  ]
+},
+/* ---------------- 3.3 ---------------- */
+{
+  id:'3.3',name:'TWO DOORS',real:'logistic regression',icon:'🚪',sub:'one line splits them',
+  build(){
+    this.angle=0.5;this.offset=0;
+    this.ctrl([{t:'↺ FIND THE GAP',f:()=>{this.angle=0.42;this.offset=0;}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const a=axes({x:70,y:56,w:352,h:168},{x0:30,x1:60,y0:170,y1:245},{x:'STRIPES',y:'WIDTH',ticks:4});
+    DATA.forEach((d,i)=>{
+      faceAt(a.X,a.Y,d.bill,d.flipper,6,COLOR[d.species],(i+this.blink)%17===0);
+    });
+    // a straight divider through the middle, draggable
+    const cx=a.X(45),cy=a.Y(207);
+    const dx=Math.cos(this.angle)*300,dy=Math.sin(this.angle)*300;
+    CX.strokeStyle='#fff6e6';CX.lineWidth=4;
+    CX.beginPath();CX.moveTo(cx-dx+this.offset,cy-dy);CX.lineTo(cx+dx+this.offset,cy+dy);CX.stroke();
+    CX.font='8px "Press Start 2P"';CX.fillStyle='#8a8ab8';
+    CX.fillText('DRAG TO SLIDE THE DOOR',26,30);
+    CX.fillStyle='#c8c8e8';CX.font='7px "Press Start 2P"';CX.fillText('TAP LEFT OR RIGHT OF IT TO TILT',26,282);
+  },
+  click(p){
+    this.angle=Math.max(-1.2,Math.min(1.2,(p.y-56)/168*2-1));
+    this.draw();
+  },
+  drag(p){
+    this.offset=Math.max(-160,Math.min(160,p.x-70-176));
+    this.draw();
+  },
+  say:'For two kinds, a single <b>straight door</b> can split them: one side guesses CANDY, the other GUMMY. Slide and tilt it until the two teams are on opposite sides.',
+  sowhat:'For two kinds, one straight door can separate them.',
+  quiz:[
+    {q:'Logistic regression splits...',o:['Three kinds','Two kinds, with one line','Nothing'],a:1,why:'It\'s for two-way choices.'},
+    {q:'The line is placed to...',o:['Look neat','Put each kind on its own side','Pass through everyone'],a:1,why:'Best separation.'}
+  ]
+},
+/* ---------------- 3.4 ---------------- */
+{
+  id:'3.4',name:'TOO BENDY',real:'overfitting',icon:'🌪️',sub:'memorising vs learning',
+  build(){
+    this.bend=1;
+    this.ctrl([{t:'− BEND',f:()=>{this.bend=Math.max(1,this.bend-1);}},
+               {t:'+ BEND',f:()=>{this.bend=Math.min(9,this.bend+1);}}]);
+  },
+  draw(){
+    clearCv();playArea();
+    const a=axes({x:70,y:56,w:352,h:168},{x0:30,x1:60,y0:170,y1:245},{x:'STRIPES',y:'WIDTH',ticks:4});
+    const train=DATA.filter((d,i)=>i%4!==0);
+    const test=DATA.filter((d,i)=>i%4===0);
+    // a boundary that gets more wiggly as bend rises
+    CX.strokeStyle=this.bend>5?'#ff4d5e':this.bend>3?'#ffd23e':'#5dd75d';
+    CX.lineWidth=3;
+    CX.beginPath();
+    for(let t=0;t<=1;t+=0.01){
+      const x=30+t*30;
+      const wobble=Math.sin(t*Math.PI*2*this.bend)*this.bend*0.9;
+      const y=207+wobble;
+      const px=a.X(x),py=a.Y(y);
+      t===0?CX.moveTo(px,py):CX.lineTo(px,py);
+    }
+    CX.stroke();
+    train.forEach((d,i)=>faceAt(a.X,a.Y,d.bill,d.flipper,6,COLOR[d.species],(i+this.blink)%13===0));
+    test.forEach((d,i)=>{
+      faceAt(a.X,a.Y,d.bill,d.flipper,4,'#fff6e6',false);
+      CX.strokeStyle='#fff6e6';CX.lineWidth=1;
+      CX.beginPath();CX.arc(a.X(d.bill),a.Y(d.flipper),8,0,7);CX.stroke();
+    });
+    const trainScore=Math.min(99,60+this.bend*4);
+    const testScore=Math.max(38,60+this.bend*4-(this.bend>4?(this.bend-4)*9:0));
+    CX.font='8px "Press Start 2P"';
+    CX.fillStyle='#8a8ab8';CX.fillText('BEND: '+this.bend,26,30);
+    CX.fillStyle='#5dd75d';CX.fillText('TRAINED ON: '+trainScore+'%',26,46);
+    CX.fillStyle=testScore<55?'#ff4d5e':'#ffd23e';
+    CX.fillText('NEW ONES: '+testScore+'%',230,46);
+    CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';
+    CX.fillText('WHITE RINGS = creatures it has never seen',26,282);
+  },
+  say:'Turn the bend up! At first the wiggly boundary fits better and better. Then it starts <b>memorising</b> the creatures it saw, and falls apart on ones it hasn\'t. That\'s <b>overfitting</b>.',
+  sowhat:'Too bendy = memorising. It looks great on old data and fails on new.',
+  quiz:[
+    {q:'A very wiggly boundary that scores 99% on old data...',o:['Is the best','Probably memorised','Is broken'],a:1,why:'Check it on creatures it has never seen.'},
+    {q:'The white rings show...',o:['Creatures it trained on','Creatures it has never seen','Nothing'],a:1,why:'That\'s the honest test.'}
+  ]
+},
+];
+
+/* ============================================================
+   STAGES
+   ============================================================ */
+const STAGES=[
+  {n:1,title:'STAGE 1',name:'READING THE PICTURE',blurb:'dots, bars, lines',real:'data visualisation',icon:'📊',color:'#7ee0ff'},
+  {n:2,title:'STAGE 2',name:'MAKING BETTER CLUES',blurb:'fixing and building columns',real:'feature engineering',icon:'🧪',color:'#ffd23e'},
+  {n:3,title:'STAGE 3',name:'PICKING THE CLUES',blurb:'keeping the useful ones',real:'feature selection',icon:'🔍',color:'#5dd75d'},
+  {n:4,title:'STAGE 4',name:'GUESSING',blurb:'models that answer',real:'machine learning models',icon:'🤖',color:'#ff8ad8'}
+];
+function stageOf(L){const n=parseInt(String(L.id).split('.')[0],10);const map={0:1,1:2,2:3,3:4};const k=(n in map)?map[n]:1;return STAGES.find(x=>x.n===k)||STAGES[0];}
+function levelsOf(st){const out=[];LEVELS.forEach((L,i)=>{if(L&&stageOf(L).n===st.n)out.push({L,i});});return out;}
+function stageDone(st){const a=levelsOf(st);return a.length>0&&a.every(o=>S.done.includes(o.L.id));}
+function stageUnlocked(st){if(st.n===1)return true;const p=STAGES.find(x=>x.n===st.n-1);return p?stageDone(p):true;}
+
+
+/* ============================================================
+   LEVEL RUNNER
+   ============================================================ */
+let cur=null,curIdx=0,blinkTimer=null;
+const ctrlBox=document.getElementById('lv-controls');
+
+function ctrl(list){
+  ctrlBox.innerHTML='';
+  list.forEach(c=>{
+    const b=document.createElement('button');
+    b.className='btn small2 gray'+(c.on?' on':'');
+    b.textContent=c.t;
+    b.onclick=()=>{sfx.click();c.f();refreshCtrl();cur.draw();};
+    ctrlBox.appendChild(b);
+  });
+  ctrlBox._list=list;
+}
+function refreshCtrl(){
+  if(!ctrlBox._list)return;
+  [...ctrlBox.children].forEach((b,i)=>{
+    const c=ctrlBox._list[i];
+    if(c.on!==undefined)b.classList.toggle('on',!!c.on);
+  });
+}
+
+function openLevel(idx){
+  curIdx=idx;
+  const L=LEVELS[idx];
+  cur=Object.assign({},L);
+  cur.ctrl=ctrl;
+  Object.keys(L).forEach(k=>{if(typeof L[k]==='function'&&k!=='ctrl')cur[k]=L[k].bind(cur);});
+  cur.draw=L.draw.bind(cur);
+  cur.click=L.click?L.click.bind(cur):null;
+  cur.drag=L.drag?L.drag.bind(cur):null;
+
+  document.getElementById('lv-title').textContent='◈ '+L.id;
+  const st=stageOf(LEVELS[idx]);
+  const stLevels=levelsOf(st);
+  const stPos=stLevels.findIndex(o=>o.i===idx)+1;
+  document.getElementById('lv-title').textContent='STAGE '+st.n+' · LEVEL '+stPos+'/'+stLevels.length;
+  const pbox=document.getElementById('lv-progress');
+  if(pbox){
+    pbox.innerHTML=stLevels.map(o=>'<i class="'+(S.done.includes(o.L.id)?'on':'')+'"></i>').join('');
+  }
+  document.getElementById('lv-name').textContent=L.name;
+  document.getElementById('lv-real').textContent='('+(L.real||'')+')';
+  document.getElementById('lv-say').innerHTML=L.say;
+  document.getElementById('lv-banner').classList.add('hidden');
+  show('screen-level');
+  cur.build();
+  cur.draw();
+
+  clearInterval(blinkTimer);
+  blinkTimer=setInterval(()=>{
+    if(document.getElementById('screen-level').classList.contains('hidden'))return;
+    if(cur&&cur.blink!==undefined){cur.blink++;cur.draw();}
+  },420);
+}
+
+let dragging=false;
+function evPos(e){return toCanvas(e,CV);}
+CV.addEventListener('pointerdown',e=>{
+  if(!cur)return;
+  const p=evPos(e);dragging=true;
+  if(cur.click)cur.click(p);
+  if(cur.drag)cur.drag(p);
+  CV.setPointerCapture(e.pointerId);
+});
+CV.addEventListener('pointermove',e=>{if(!dragging||!cur||!cur.drag)return;cur.drag(evPos(e));});
+CV.addEventListener('pointerup',()=>{dragging=false;});
+CV.addEventListener('pointercancel',()=>{dragging=false;});
+
+document.getElementById('btn-lv-hub').onclick=()=>{sfx.click();renderHub();show('screen-hub');};
+document.getElementById('btn-reset-lv').onclick=()=>{sfx.click();openLevel(curIdx);};
+document.getElementById('btn-lv-done').onclick=()=>{
+  sfx.click();
+  if(pendingQuiz){                       // resuming: reopen the same question
+    pendingQuiz=false;
+    const banner=document.getElementById('lv-banner');
+    banner.classList.add('hidden');banner.innerHTML='';
+    document.getElementById('modal-quiz').classList.remove('hidden');
+    renderQ();
+  }else startQuizFor(curIdx);
+};
+
+/* ============================================================
+   HUB
+   ============================================================ */
+function renderHub(){
+  const box=document.getElementById('hubmap');
+  box.innerHTML=STAGES.map(st=>{
+    const items=levelsOf(st);
+    const doneCount=items.filter(o=>S.done.includes(o.L.id)).length;
+    const unlocked=stageUnlocked(st);
+    const complete=stageDone(st);
+    const nextItem=items.find(o=>!S.done.includes(o.L.id))||items[0];
+    const pct=items.length?Math.round(doneCount/items.length*100):0;
+    return '<div class="stage" data-n="'+st.n+'" style="--sc:'+st.color+'">'+
+      '<div class="stage-head">'+
+        '<div class="stage-ico">'+(unlocked?st.icon:'🔒')+'</div>'+
+        '<div class="stage-txt">'+
+          '<div class="stage-title">'+st.title+' — '+st.name+'</div>'+
+          '<div class="stage-blurb">'+(unlocked?st.blurb:'finish stage '+(st.n-1)+' first')+'</div>'+
+          '<div class="stage-real">'+st.real+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="stage-bar"><span style="width:'+pct+'%"></span></div>'+
+      '<div class="stage-meta">'+doneCount+' / '+items.length+' LEVELS'+(complete?' · ✔ CLEAR':'')+'</div>'+
+      '<div class="stage-btns">'+
+        (unlocked&&nextItem?'<button class="btn green" data-act="play" data-i="'+nextItem.i+'">'+(doneCount===0?'▶ START':(complete?'▶ REPLAY':'▶ CONTINUE'))+'</button>':'')+
+        '<button class="btn small2 gray" data-act="list">'+(unlocked?'LEVELS':'LOCKED')+'</button>'+
+      '</div>'+
+      '<div class="levels hidden">'+
+        items.map(o=>{
+          const pos=o.i;
+          const lockedL=pos>0&&!S.done.includes(LEVELS[pos-1].id);
+          return '<div class="node '+(S.done.includes(o.L.id)?'done':'')+' '+(lockedL?'locked':'')+'" data-i="'+pos+'">'+
+            '<div class="sprite">'+(lockedL?'🔒':o.L.icon)+'</div>'+
+            '<div class="nm">'+o.L.id+' '+o.L.name+'</div>'+
+            '<div class="sub">'+(S.done.includes(o.L.id)?'✔ done':(lockedL?'finish before':'tap me!'))+'</div>'+
+            '<div class="nreal">'+(o.L.real||'')+'</div>'+
+          '</div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  [...box.querySelectorAll('[data-act]')].forEach(el=>{
+    el.onclick=(e)=>{
+      e.stopPropagation();
+      if(el.dataset.act==='play'){
+        const i=+el.dataset.i;
+        const st=stageOf(LEVELS[i]);
+        if(!stageUnlocked(st)){sfx.bad();return;}
+        sfx.click();openLevel(i);
+      }else{
+        const card=el.closest('.stage');
+        const lv=card.querySelector('.levels');
+        lv.classList.toggle('hidden');
+        el.textContent=lv.classList.contains('hidden')?'LEVELS':'HIDE';
+        sfx.click();
+      }
+    };
+  });
+  [...box.querySelectorAll('.node')].forEach(el=>{
+    el.onclick=()=>{
+      if(el.classList.contains('locked')){sfx.bad();return;}
+      sfx.click();openLevel(+el.dataset.i);
+    };
+  });
+  renderHUD();
+}
+
+/* ============================================================
+   QUIZ + RESULTS
+   ============================================================ */
+let quizSet=[],qi=0,qCorrect=0,quizLevelIdx=0,pendingQuiz=false;
+function showQuiz(qs){
+  quizSet=qs;qi=0;qCorrect=0;
+  document.getElementById('modal-quiz').classList.remove('hidden');
+  renderQ();
+}
+function startQuizFor(idx){quizLevelIdx=idx;showQuiz(LEVELS[idx].quiz);}
+function renderQ(){
+  const q=quizSet[qi];
+  document.getElementById('quiz-q').textContent=(qi+1)+'/'+quizSet.length+'  '+q.q;
+  const fb=document.getElementById('quiz-feedback');fb.textContent='';fb.className='';
+  const nx=document.getElementById('btn-quiz-next');
+  nx.classList.add('hidden');
+  nx.textContent=(qi+1>=quizSet.length)?'DONE ▶':'NEXT ▶';
+  // the way back is always there, from the first question on
+  document.getElementById('btn-quiz-back').classList.remove('hidden');
+  const box=document.getElementById('quiz-opts');box.innerHTML='';
+  q.o.forEach((opt,i)=>{
+    const b=document.createElement('button');
+    b.className='btn small2 gray';b.style.display='block';b.style.width='100%';
+    b.style.textAlign='left';b.style.margin='6px 0';b.textContent=opt;
+    b.onclick=()=>{
+      [...box.children].forEach(c=>c.disabled=true);
+      if(i===q.a){b.style.background='#5dd75d';b.style.color='#141433';
+        fb.textContent='✔ '+q.why;fb.style.color='#5dd75d';qCorrect++;sfx.good();}
+      else{box.children[q.a].style.background='#5dd75d';box.children[q.a].style.color='#141433';
+        b.style.background='#ff4d5e';b.style.color='#fff';
+        fb.textContent='✖ '+q.why+'  —  hit GO BACK & LOOK and try again!';fb.style.color='#ff4d5e';sfx.bad();}
+      nx.classList.remove('hidden');
+    };
+    box.appendChild(b);
+  });
+}
+document.getElementById('btn-quiz-next').onclick=()=>{
+  sfx.click();qi++;
+  if(qi>=quizSet.length){document.getElementById('modal-quiz').classList.add('hidden');finishLevel();}
+  else renderQ();
+};
+
+/* ---- THE WAY BACK: close the question, look at the picture again ---- */
+function goBackAndLook(){
+  sfx.click();
+  document.getElementById('modal-quiz').classList.add('hidden');
+  const L=LEVELS[quizLevelIdx];
+  const banner=document.getElementById('lv-banner');
+  banner.classList.remove('hidden');
+  banner.style.background='#33336e';
+  banner.innerHTML='👀 <b>GO LOOK AGAIN!</b><br>Play with it, then tap <b>I GOT IT!</b> to come back to the question.';
+  // give the level a little shake so they notice it
+  CV.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},
+              {transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:340});
+  // coming back should resume where they left off, not start over
+  pendingQuiz=true;
+}
+document.getElementById('btn-quiz-back').onclick=goBackAndLook;
+
+function finishLevel(){
+  const L=LEVELS[quizLevelIdx];
+  const quizXP=qCorrect*15;
+  const isNew=!S.done.includes(L.id);
+  const firstXP=isNew?40:0;
+  const total=quizXP+firstXP;
+  S.xp+=total;
+  if(isNew)S.done.push(L.id);
+  if(!S.dex.includes(L.id))S.dex.push(L.id);
+  save();renderHUD();
+
+  document.getElementById('res-badge').textContent=L.icon+' '+L.name;
+  document.getElementById('res-lines').innerHTML=
+    `<p>▸ Quiz … +${quizXP} XP (${qCorrect}/${quizSet.length})</p>`+
+    (isNew?`<p>▸ New sticker! … +${firstXP} XP</p>`:'')+
+    `<p class="good" style="margin-top:10px;">+${total} XP — LV.${levelOf(S.xp)}</p>`;
+  const nextBtn=document.getElementById('btn-res-next');
+  const next=LEVELS[quizLevelIdx+1];
+  if(next){nextBtn.classList.remove('hidden');nextBtn.onclick=()=>{sfx.click();openLevel(quizLevelIdx+1);};}
+  else nextBtn.classList.add('hidden');
+  show('screen-results');sfx.win();
+}
+document.getElementById('btn-res-hub').onclick=()=>{sfx.click();renderHub();show('screen-hub');};
+
+/* ============================================================
+   STICKER BOOK
+   ============================================================ */
+function renderDex(){
+  document.getElementById('dexgrid').innerHTML=LEVELS.map(L=>{
+    const got=S.dex.includes(L.id);
+    return `<div style="background:#2b2b5e;border:4px solid #000;padding:10px;font-size:8px;line-height:1.9;${got?'':'opacity:.35;filter:grayscale(1);'}">
+      <div style="font-size:22px;">${got?L.icon:'▢'}</div>
+      <div style="color:#ffd23e;font-size:8px;margin:6px 0;">${got?L.name:'???'}</div>
+      <div>${got?L.sowhat:'not found yet…'}</div>
+      <div style="font-size:6px;color:#5f5f96;margin-top:6px;letter-spacing:1px;">${got?(L.real||''):''}</div></div>`;
+  }).join('');
+}
+document.getElementById('btn-dex').onclick=()=>{sfx.click();renderDex();document.getElementById('modal-dex').classList.remove('hidden');};
+document.getElementById('btn-dex-close').onclick=()=>{sfx.click();document.getElementById('modal-dex').classList.add('hidden');};
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+drawProf();
+(function titleArt(){
+  const c=document.createElement('canvas');
+  c.width=200;c.height=48;c.style.cssText='width:200px;image-rendering:pixelated;';
+  const x=c.getContext('2d');
+  x.fillStyle='#141433';x.fillRect(0,0,200,48);
+  ['red','blue','gold','red','blue'].forEach((s,i)=>{
+    drawSprite(x,s,10+i*38,8,4,COLOR[s]);
+    x.fillStyle='#141433';x.fillRect(10+i*38+8,20,4,4);x.fillRect(10+i*38+20,20,4,4);
+  });
+  document.getElementById('title-art').appendChild(c);
+})();
+/* ============================================================
+   SETTINGS (saved on this device)
+   ============================================================ */
+const SET_KEY='mlquest_settings_v1';
+let SET={music:true,musicVol:0.5,sfx:true,sfxVol:0.6,speed:'NORMAL'};
+try{const raw=localStorage.getItem(SET_KEY);if(raw)SET=Object.assign(SET,JSON.parse(raw));}catch(e){}
+function saveSet(){try{localStorage.setItem(SET_KEY,JSON.stringify(SET));}catch(e){}}
+function paintSettings(){
+  const m=document.getElementById('set-music'),x=document.getElementById('set-sfx'),sp=document.getElementById('set-speed');
+  m.textContent=SET.music?'ON':'OFF';m.classList.toggle('on',SET.music);
+  x.textContent=SET.sfx?'ON':'OFF';x.classList.toggle('on',SET.sfx);
+  sp.textContent=SET.speed;sp.classList.toggle('on',SET.speed!=='NORMAL');
+  document.getElementById('set-vol').value=Math.round(SET.musicVol*100);
+  document.getElementById('set-sfxvol').value=Math.round(SET.sfxVol*100);
+  document.getElementById('set-vol-hint').textContent=Math.round(SET.musicVol*100)+'%';
+  document.getElementById('set-sfxvol-hint').textContent=Math.round(SET.sfxVol*100)+'%';
+}
+document.getElementById('btn-play').onclick=()=>{sfx.click();startMusic();renderHub();show('screen-hub');};
+document.getElementById('btn-hub-home').onclick=()=>{sfx.click();show('screen-title');};
+document.getElementById('btn-home-settings').onclick=()=>{sfx.click();paintSettings();show('screen-settings');};
+document.getElementById('btn-home-credits').onclick=()=>{sfx.click();document.getElementById('modal-credits').classList.remove('hidden');};
+document.getElementById('btn-credits-close').onclick=()=>{sfx.click();document.getElementById('modal-credits').classList.add('hidden');};
+document.getElementById('btn-set-home').onclick=()=>{sfx.click();show('screen-title');};
+document.getElementById('set-music').onclick=()=>{SET.music=!SET.music;saveSet();paintSettings();SET.music?startMusic():stopMusic();sfx.click();};
+document.getElementById('set-sfx').onclick=()=>{SET.sfx=!SET.sfx;saveSet();paintSettings();sfx.click();};
+document.getElementById('set-speed').onclick=()=>{
+  SET.speed=SET.speed==='NORMAL'?'FAST':(SET.speed==='FAST'?'SLOW':'NORMAL');
+  saveSet();paintSettings();sfx.click();
+};
+document.getElementById('set-vol').oninput=e=>{
+  SET.musicVol=e.target.value/100;saveSet();paintSettings();setMusicVolume(SET.musicVol);
+};
+document.getElementById('set-sfxvol').oninput=e=>{SET.sfxVol=e.target.value/100;saveSet();paintSettings();};
+document.getElementById('btn-set-wipe').onclick=()=>{
+  if(confirm('Erase your levels and stickers?')){
+    S={xp:0,dex:[],done:[]};save();renderHub();sfx.bad();
+    alert('All clear! Fresh start.');
+  }
+};
+paintSettings();
+
+renderHub();
+</script>
+</body>
+</html>
