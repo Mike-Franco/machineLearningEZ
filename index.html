@@ -120,6 +120,32 @@ canvas.game{width:100%;image-rendering:pixelated;display:block;background:#1a1a4
 #lv-say{font-size:10px;line-height:2;}
 #lv-controls .btn{font-size:9px;}
 .prof{border-radius:0;box-shadow:4px 4px 0 rgba(0,0,0,.5);}
+
+.btn.axis{background:var(--panel2);color:var(--ink);font-size:9px;}
+.btn.axis.on{background:#2b2b5e;color:var(--ink);outline:3px solid #fff;outline-offset:2px;}
+.btn.axis[data-axis="x"].on{outline-color:var(--gold);}
+.btn.axis[data-axis="y"].on{outline-color:var(--blue);}
+
+.sumbar{position:relative;height:24px;background:#1a1a40;border:4px solid #000;margin:0 0 14px;}
+.sumbarfill{height:100%;background:#5dd75d;transition:width .3s;}
+.sumbar span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff6e6;}
+.sumstage{background:#232355;border:4px solid #000;border-left:10px solid #ffd23e;padding:10px 12px;margin-bottom:12px;}
+.sumstage.dim{opacity:.5;filter:grayscale(.7);}
+.sumhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.sumicon{font-size:16px;}
+.sumtitle{font-size:9px;letter-spacing:1px;}
+.sumcount{margin-left:auto;font-size:8px;color:#8a8ab8;}
+.sumreal{font-size:7px;color:#5f5f96;letter-spacing:1px;margin:4px 0 8px;}
+.sumlist{list-style:none;margin:0;padding:0;}
+.sumlist li{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:2px dashed #33336e;font-size:8px;line-height:1.9;}
+.sumlist li .sumtick{width:14px;flex:none;}
+.sumlist li.ok .sumtick{color:#5dd75d;}
+.sumlist li.todo{opacity:.55;}
+.sumlist li.todo .sumtick{color:#8a8ab8;}
+.sumwhat{color:#fff6e6;flex:none;}
+.sumwhy{color:#8a8ab8;font-size:7px;}
+.sumnone{font-size:8px;color:#8a8ab8;margin:4px 0 0;}
+.sumfoot{font-size:8px;line-height:2;color:#c8c8e8;background:#1a1a40;border:4px solid #000;padding:10px 12px;}
 </style>
 <base target="_blank">
 </head>
@@ -134,10 +160,24 @@ canvas.game{width:100%;image-rendering:pixelated;display:block;background:#1a1a4
     <div id="title-art" style="margin-top:14px;"></div>
     <button class="playbtn" id="btn-play">▶ PLAY</button>
     <div class="homemenu">
+      <button class="btn green" id="btn-home-summary">📜 WHAT I LEARNED</button>
       <button class="btn gray" id="btn-home-settings">⚙ SETTINGS</button>
       <button class="btn gray" id="btn-home-credits">★ CREDITS</button>
     </div>
     <p class="creditline">MADE BY <b>MIKE ABAT</b></p>
+  </div>
+</div>
+
+<!-- ===================== SUMMARY ===================== -->
+<div id="screen-summary" class="screen hidden">
+  <div class="panel">
+    <div class="lvtop">
+      <div class="lvchip" id="sum-chip">📜 SUMMARY</div>
+      <button class="btn small2 gray" id="btn-sum-home">⌂ HOME</button>
+    </div>
+    <h2>WHAT YOU LEARNED</h2>
+    <p class="small" id="sum-line" style="margin:4px 0 12px;"></p>
+    <div id="sum-body"></div>
   </div>
 </div>
 
@@ -472,6 +512,7 @@ function fmt(v){
 function axes(box,domain,labels,opts){
   opts=opts||{};
   const {x,y,w,h}=box,d=domain;
+  const BAD=opts.bad||'#ff4d5e';
   CX.fillStyle='#1a1a40';CX.fillRect(x,y,w,h);
   CX.strokeStyle='#3d3d7a';CX.lineWidth=2;CX.strokeRect(x,y,w,h);
   const X=v=>x+(v-d.x0)/(d.x1-d.x0)*w;
@@ -480,6 +521,24 @@ function axes(box,domain,labels,opts){
   CX.font='7px "Press Start 2P"';CX.fillStyle='#8a8ab8';
   for(let i=0;i<=nt;i++){
     const vx=d.x0+(d.x1-d.x0)*i/nt, vy=d.y0+(d.y1-d.y0)*i/nt;
+    const bx=!!(opts.badX&&opts.badX(vx,i)), by=!!(opts.badY&&opts.badY(vy,i));
+    if(bx||by){
+      const tx=X(vx), ty=Y(vy);
+      if(bx){
+        CX.fillStyle='rgba(255,77,94,.28)';CX.fillRect(tx-16,y-4,32,h+8);
+        CX.fillStyle=BAD;CX.fillRect(tx-15,y+h+3,30,15);
+        CX.strokeStyle='#000';CX.lineWidth=2;CX.strokeRect(tx-15,y+h+3,30,15);
+        CX.fillStyle='#141433';CX.textAlign='center';CX.fillText(fmt(vx),tx,y+h+14);
+      }
+      if(by){
+        CX.fillStyle='rgba(255,77,94,.28)';CX.fillRect(x-4,ty-9,w+8,18);
+        CX.fillStyle=BAD;CX.fillRect(x-38,ty-9,32,15);
+        CX.strokeStyle='#000';CX.lineWidth=2;CX.strokeRect(x-38,ty-9,32,15);
+        CX.fillStyle='#141433';CX.textAlign='right';CX.fillText(fmt(vy),x-11,ty+2);
+      }
+      CX.fillStyle='#8a8ab8';CX.textAlign='left';
+      continue;
+    }
     CX.textAlign='center';CX.fillText(fmt(vx),X(vx),y+h+13);
     CX.textAlign='right';CX.fillText(fmt(vy),x-5,Y(vy)+3);
   }
@@ -547,6 +606,115 @@ const COLS={bill:{label:'STRIPES',min:30,max:60},
    LEVELS
    ============================================================ */
 
+
+/* ============================================================
+   BIG CREATURE VIEW — what a column really means
+   ============================================================ */
+function stripePath(x,y,w,h,count){
+  // wavy stripes across a rounded body
+  CX.save();
+  CX.beginPath();
+  CX.arc(x,y,h*0.5,0,7);CX.clip();
+  CX.fillStyle='#fff6e6';
+  for(let i=0;i<count;i++){
+    const sx=x-w*0.6+i*(w*1.2/Math.max(1,count))+2;
+    CX.save();
+    CX.translate(sx,y);CX.rotate(-0.35);
+    CX.fillRect(-3,-h,6,h*2);
+    CX.restore();
+  }
+  CX.restore();
+}
+function bigCreature(cx,cy,size,d){
+  const r=size/2;
+  // body
+  CX.fillStyle=COLOR[d.species];
+  CX.beginPath();CX.arc(cx,cy,r,0,7);CX.fill();
+  // stripes: one per point of STRIPES, squeezed in
+  const n=Math.max(1,Math.round((d.bill-30)/5));   // 30..60 stripes -> 0..6 visible bands
+  if(n>0){
+    CX.save();CX.beginPath();CX.arc(cx,cy,r,0,7);CX.clip();
+    CX.fillStyle='rgba(20,20,51,.45)';
+    for(let i=0;i<n;i++){
+      const t=(i+0.5)/n;
+      CX.fillRect(cx-r+t*2*r-3,cy-r,6,2*r);
+    }
+    CX.restore();
+  }
+  // outline
+  CX.strokeStyle='#000';CX.lineWidth=4;
+  CX.beginPath();CX.arc(cx,cy,r,0,7);CX.stroke();
+  // face
+  CX.fillStyle='#141433';
+  const er=Math.max(2,r*0.09);
+  CX.beginPath();CX.arc(cx-r*0.3,cy-r*0.12,er,0,7);CX.fill();
+  CX.beginPath();CX.arc(cx+r*0.3,cy-r*0.12,er,0,7);CX.fill();
+  CX.strokeStyle='#141433';CX.lineWidth=3;
+  CX.beginPath();CX.arc(cx,cy+r*0.12,r*0.3,0.15*Math.PI,0.85*Math.PI);CX.stroke();
+  // WIDTH: a measuring tape under him
+  const wpx=Math.max(24,Math.min(r*2.1,(d.flipper-170)/75*(r*2.1)+20));
+  CX.strokeStyle='#4dc3ff';CX.lineWidth=3;
+  CX.beginPath();CX.moveTo(cx-wpx/2,cy+r+16);CX.lineTo(cx+wpx/2,cy+r+16);CX.stroke();
+  CX.beginPath();CX.moveTo(cx-wpx/2,cy+r+10);CX.lineTo(cx-wpx/2,cy+r+22);CX.stroke();
+  CX.beginPath();CX.moveTo(cx+wpx/2,cy+r+10);CX.lineTo(cx+wpx/2,cy+r+22);CX.stroke();
+  CX.fillStyle='#4dc3ff';CX.font='7px "Press Start 2P"';CX.textAlign='center';
+  CX.fillText(Math.round(d.flipper)+'cm',cx,cy+r+34);
+  CX.textAlign='left';
+}
+function labelChip(x,y,txt,col){
+  CX.font='7px "Press Start 2P"';
+  let mw=0;try{mw=CX.measureText(txt).width||0;}catch(e){mw=0;}
+  const w=(mw||txt.length*7)+12;
+  CX.fillStyle='#141433';CX.fillRect(x,y-11,w,18);
+  CX.strokeStyle=col;CX.lineWidth=2;CX.strokeRect(x,y-11,w,18);
+  CX.fillStyle=col;CX.fillText(txt,x+6,y+2);
+  return w;
+}
+
+
+/* ============================================================
+   BIG POP-UP PANEL — "what am I looking at?" in large type
+   ============================================================ */
+function popPanel(x,y,w,h,title,col){
+  CX.fillStyle='#141433';CX.fillRect(x,y,w,h);
+  CX.strokeStyle=col||'#ffd23e';CX.lineWidth=4;CX.strokeRect(x,y,w,h);
+  CX.fillStyle='#0e0e2a';CX.fillRect(x,y,w,26);
+  CX.strokeStyle=col||'#ffd23e';CX.lineWidth=3;CX.strokeRect(x,y,w,26);
+  CX.font='10px "Press Start 2P"';CX.fillStyle=col||'#ffd23e';CX.textAlign='center';
+  CX.fillText(title,x+w/2,y+18);CX.textAlign='left';
+}
+function popRow(x,y,txt,col,size){
+  CX.font=(size||10)+'px "Press Start 2P"';CX.fillStyle=col||'#fff6e6';
+  CX.fillText(txt,x,y);
+}
+function popBtn(x,y,w,h,txt,col,on){
+  CX.fillStyle=on?(col||'#ffd23e'):'#232355';
+  CX.fillRect(x,y,w,h);
+  CX.strokeStyle=on?'#000':(col||'#ffd23e');CX.lineWidth=3;CX.strokeRect(x,y,w,h);
+  CX.font='8px "Press Start 2P"';CX.fillStyle=on?'#141433':(col||'#ffd23e');
+  CX.textAlign='center';CX.fillText(txt,x+w/2,y+h/2+4);CX.textAlign='left';
+}
+
+
+/* a red arrow-tag that points at the exact thing that is wrong */
+function lieTag(x,y,txt,pointUp){
+  CX.font='8px "Press Start 2P"';
+  let tw=0;try{tw=CX.measureText(txt).width||0;}catch(e){tw=0;}
+  tw=tw||txt.length*8;
+  const w=tw+16,h=18;
+  const bx=Math.min(Math.max(4,x-w/2),W-w-4);
+  CX.fillStyle='#ff4d5e';CX.fillRect(bx,y,w,h);
+  CX.strokeStyle='#000';CX.lineWidth=3;CX.strokeRect(bx,y,w,h);
+  CX.fillStyle='#141433';CX.textAlign='center';CX.fillText(txt,bx+w/2,y+13);CX.textAlign='left';
+  // little arrow to the spot
+  const ax=Math.min(Math.max(6,x),W-6);
+  CX.beginPath();
+  if(pointUp){CX.moveTo(ax,y);CX.lineTo(ax-6,y+8);CX.lineTo(ax+6,y+8);}
+  else{CX.moveTo(ax,y+h);CX.lineTo(ax-6,y+h-8);CX.lineTo(ax+6,y+h-8);}
+  CX.closePath();CX.fillStyle='#ff4d5e';CX.fill();
+  CX.strokeStyle='#000';CX.lineWidth=2;CX.stroke();
+}
+
 /* ---- helpers for the kNN level ---- */
 function scatter(arr,n){
   arr.length=0;
@@ -573,28 +741,76 @@ const LEVELS=[
 {
   id:'0.1',name:'HELLO, DOTS!',real:'data tables',icon:'👋',sub:'who are you?',
   build(){
-    this.sel=0;this.showTable=true;this.blink=0;
-    this.ctrl([{t:'📋 TABLE',on:true,f:()=>{this.showTable=true;}},
-               {t:'😀 DOTS!',f:()=>{this.showTable=false;}}]);
+    this.sel=0;this.showTable=true;this.blink=0;this.zoom=false;
+    this.ctrl([{t:'📋 TABLE + CREATURE',on:true,f:()=>{this.showTable=true;}},
+               {t:'😀 DOTS!',f:()=>{this.showTable=false;}},
+               {t:'🔍 ZOOM IN',f:()=>{this.zoom=!this.zoom;this.showTable=true;}}]);
   },
   draw(){
     clearCv();playArea();
-    if(this.showTable){
-      const x0=34,y0=58,rh=31;
-      const head=['#','STRIPES','WIDTH','KIND'];
-      const cw=[42,84,78,100];
+    if(this.showTable && !this.zoom){
+      /* --- table on the left, one big creature on the right --- */
+      const x0=20,y0=56,rh=27,cw=[26,66,60];
+      const d=DATA[this.sel];
+      CX.font='7px "Press Start 2P"';CX.fillStyle='#ffd23e';
       let x=x0;
-      CX.font='8px "Press Start 2P"';CX.fillStyle='#ffd23e';
-      head.forEach((h,i)=>{CX.fillText(h,x,y0);x+=cw[i];});
-      for(let r=0;r<6;r++){
-        const d=DATA[r],yy=y0+24+r*rh;
-        if(r===this.sel){CX.fillStyle='#33336e';CX.fillRect(x0-10,yy-15,300,rh-2);}
-        CX.fillStyle='#fff6e6';x=x0;
-        [d.id,d.bill,d.flipper,TAG[d.species]].forEach((v,i)=>{CX.fillText(String(v),x,yy);x+=cw[i];});
-        drawSprite(CX,d.species,x0+282,yy-11,2.6,COLOR[d.species]);
+      ['#','STRIPES','WIDTH'].forEach((h,i)=>{CX.fillText(h,x,y0);x+=cw[i];});
+      for(let r=0;r<8;r++){
+        const row=DATA[r],yy=y0+22+r*rh;
+        if(r===this.sel){
+          CX.fillStyle='#33336e';CX.fillRect(x0-6,yy-13,158,rh-2);
+          CX.fillStyle='#ffd23e';CX.fillRect(x0-6,yy-13,4,rh-2);
+        }
+        CX.fillStyle=r===this.sel?'#ffd23e':'#fff6e6';x=x0;
+        [row.id,row.bill,row.flipper].forEach((v,i)=>{CX.fillText(String(v),x,yy);x+=cw[i];});
+        drawSprite(CX,row.species,x0+150,yy-9,2,COLOR[row.species]);
       }
-      CX.fillStyle='#8a8ab8';CX.font='8px "Press Start 2P"';
-      CX.fillText('TAP A ROW ↑',x0,y0+24+6*rh+26);
+      CX.fillStyle='#8a8ab8';CX.font='6px "Press Start 2P"';
+      CX.fillText('TAP A ROW TO LOOK AT HIM',x0,272);
+
+      /* the spotlight creature */
+      CX.fillStyle='#141433';
+      CX.fillRect(190,44,272,232);
+      CX.strokeStyle='#3d3d7a';CX.lineWidth=3;CX.strokeRect(190,44,272,232);
+      bigCreature(326,140,86,d);
+      // name + kind
+      CX.font='8px "Press Start 2P"';CX.fillStyle=COLOR[d.species];CX.textAlign='center';
+      CX.fillText('#'+d.id+'  '+TAG[d.species],326,64);CX.textAlign='left';
+      // the two column labels, pointing at the real thing
+      labelChip(200,236,'STRIPES = '+d.bill,'#ffd23e');
+      labelChip(200,260,'WIDTH = '+d.flipper+'cm','#4dc3ff');
+      CX.fillStyle='#8a8ab8';CX.font='6px "Press Start 2P"';
+      CX.fillText('TAP 🔍 ZOOM IN FOR A CLOSER LOOK',198,290);
+    }else if(this.showTable && this.zoom){
+      /* --- zoomed: one creature, each column labelled on him --- */
+      const d=DATA[this.sel];
+      CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.textAlign='center';
+      CX.fillText('THIS IS #'+d.id+' — A '+TAG[d.species],W/2,30);CX.textAlign='left';
+      bigCreature(200,150,150,d);
+      // STRIPES arrow -> the bands on his body
+      CX.strokeStyle='#ffd23e';CX.lineWidth=3;
+      CX.beginPath();CX.moveTo(300,104);CX.lineTo(232,112);CX.stroke();
+      CX.beginPath();CX.arc(232,112,5,0,7);CX.fillStyle='#ffd23e';CX.fill();
+      CX.fillStyle='#ffd23e';CX.font='8px "Press Start 2P"';
+      CX.fillText('STRIPES',306,98);
+      CX.font='7px "Press Start 2P"';CX.fillStyle='#c8c8e8';
+      CX.fillText('= '+d.bill,306,112);
+      CX.fillStyle='#8a8ab8';CX.font='6px "Press Start 2P"';
+      CX.fillText('the dark bands on him',306,128);
+      // WIDTH arrow -> the measuring tape
+      CX.strokeStyle='#4dc3ff';CX.lineWidth=3;
+      CX.beginPath();CX.moveTo(300,206);CX.lineTo(258,206);CX.stroke();
+      CX.beginPath();CX.arc(258,206,5,0,7);CX.fillStyle='#4dc3ff';CX.fill();
+      CX.fillStyle='#4dc3ff';CX.font='8px "Press Start 2P"';
+      CX.fillText('WIDTH',306,200);
+      CX.font='7px "Press Start 2P"';CX.fillStyle='#c8c8e8';
+      CX.fillText('= '+Math.round(d.flipper)+'cm',306,214);
+      CX.fillStyle='#8a8ab8';CX.font='6px "Press Start 2P"';
+      CX.fillText('how wide he is',306,230);
+      CX.fillStyle='#ff8fd0';CX.font='8px "Press Start 2P"';
+      CX.fillText('KIND = '+TAG[d.species],26,268);
+      CX.fillStyle='#8a8ab8';CX.font='6px "Press Start 2P"';
+      CX.fillText('his colour tells you the kind',26,282);
     }else{
       const a=axes({x:70,y:42,w:352,h:196},{x0:30,x1:60,y0:170,y1:245},
                    {x:'HOW MANY STRIPES',y:'HOW WIDE',ticks:4});
@@ -607,10 +823,12 @@ const LEVELS=[
     }
   },
   click(p){
-    const y0=58,r=Math.floor((p.y-(y0+10))/31);
-    if(r>=0&&r<6){this.sel=r;sfx.pop();this.draw();}
+    if(this.showTable && !this.zoom){
+      const r=Math.floor((p.y-78)/27);
+      if(p.x<180&&r>=0&&r<8){this.sel=r;sfx.pop();this.draw();}
+    }
   },
-  say:'Hi! I\'m <b>Prof. Dot</b>! Our table is a box of <b>candy creatures</b>. Each row is <b>one creature</b>. Each column is <b>one thing about it</b>. Tap a row, then hit <b>DOTS!</b> <span style="color:#8a8ab8;">(big word: a table of data)</span>',
+  say:'Hi! I\'m <b>Prof. Dot</b>! The table is a box of <b>candy creatures</b>. Tap a row on the left and the creature pops up on the right — <b>STRIPES</b> are the dark bands on him, <b>WIDTH</b> is how wide he is. Hit <b>🔍 ZOOM IN</b> to see the labels on him!',
   sowhat:'One row = one creature. One column = one thing about it.',
   quiz:[
     {q:'What is one ROW?',o:['One creature 👀','One column','A whole table'],a:0,why:'One row = one creature!'},
@@ -622,19 +840,74 @@ const LEVELS=[
   id:'0.2',name:'DOT CLOUDS',real:'scatter plots',icon:'☁️',sub:'two columns → a picture',
   build(){
     this.xc='bill';this.yc='flipper';this.blink=0;
-    this.ctrl([{t:'STRIPES →',f:()=>{this.xc='bill';}},{t:'WIDTH →',f:()=>{this.xc='flipper';}},
-               {t:'WEIGHT →',f:()=>{this.xc='mass';}},
-               {t:'↑ WIDTH',f:()=>{this.yc='flipper';}},{t:'↑ STRIPES',f:()=>{this.yc='bill';}},
-               {t:'↑ WEIGHT',f:()=>{this.yc='mass';}}]);
+    this.sync();
+  },
+  sync(){
+    const names={bill:'STRIPES',flipper:'WIDTH',mass:'WEIGHT'};
+    this.ctrl([
+      {t:'▶ '+names[this.xc],axis:'x',on:true,f:()=>{
+        const order=['bill','flipper','mass'];
+        this.xc=order[(order.indexOf(this.xc)+1)%3];
+        if(this.xc===this.yc)this.xc=order[(order.indexOf(this.xc)+1)%3];
+        this.sync();
+      }},
+      {t:'▲ '+names[this.yc],axis:'y',on:true,f:()=>{
+        const order=['flipper','bill','mass'];
+        this.yc=order[(order.indexOf(this.yc)+1)%3];
+        if(this.yc===this.xc)this.yc=order[(order.indexOf(this.yc)+1)%3];
+        this.sync();
+      }}
+    ]);
   },
   draw(){
     clearCv();playArea();
-    const a=axes({x:70,y:42,w:352,h:196},
+    const box={x:70,y:42,w:352,h:196};
+    const a=axes(box,
       {x0:COLS[this.xc].min,x1:COLS[this.xc].max,y0:COLS[this.yc].min,y1:COLS[this.yc].max},
-      {x:COLS[this.xc].label,y:COLS[this.yc].label,ticks:4});
-    DATA.forEach((d,i)=>faceAt(a.X,a.Y,d[this.xc],d[this.yc],7,COLOR[d.species],(i+this.blink)%19===0));
+      {x:'',y:'',ticks:4});
+
+    // ---- bottom axis (X) ----
+    const xl=COLS[this.xc].label;
+    CX.font='8px "Press Start 2P"';
+    let xmw=0;try{xmw=CX.measureText('▶ '+xl).width||0;}catch(e){xmw=0;}
+    const xw=xmw||('▶ '+xl).length*8;
+    const xbw=xw+16, xbx=box.x+box.w/2-xbw/2, xby=box.y+box.h+14;
+    CX.fillStyle='#ffd23e';CX.fillRect(xbx,xby,xbw,20);
+    CX.strokeStyle='#000';CX.lineWidth=3;CX.strokeRect(xbx,xby,xbw,20);
+    CX.fillStyle='#141433';CX.textAlign='center';
+    CX.fillText('▶ '+xl,xbx+xbw/2,xby+14);
+    // arrow head pointing right, past the axis
+    CX.strokeStyle='#ffd23e';CX.lineWidth=4;
+    CX.beginPath();CX.moveTo(box.x+box.w-34,box.y+box.h+8);CX.lineTo(box.x+box.w-6,box.y+box.h+8);CX.stroke();
+    CX.beginPath();CX.moveTo(box.x+box.w-6,box.y+box.h+8);CX.lineTo(box.x+box.w-16,box.y+box.h+2);
+    CX.lineTo(box.x+box.w-16,box.y+box.h+14);CX.closePath();CX.fillStyle='#ffd23e';CX.fill();
+    CX.textAlign='left';
+
+    // ---- left axis (Y) ----
+    const yl=COLS[this.yc].label;
+    const ybw=yl.length*8+16;
+    CX.save();
+    CX.translate(box.x-14,box.y+box.h/2+ybw/2);
+    CX.rotate(-Math.PI/2);
+    CX.fillStyle='#4dc3ff';CX.fillRect(0,-12,ybw,20);
+    CX.strokeStyle='#000';CX.lineWidth=3;CX.strokeRect(0,-12,ybw,20);
+    CX.fillStyle='#141433';CX.textAlign='center';
+    CX.fillText('▲ '+yl,ybw/2,2);
+    CX.restore();
+    // arrow head pointing up above the axis
+    CX.strokeStyle='#4dc3ff';CX.lineWidth=4;
+    CX.beginPath();CX.moveTo(box.x-4,box.y+30);CX.lineTo(box.x-4,box.y+4);CX.stroke();
+    CX.beginPath();CX.moveTo(box.x-4,box.y+2);CX.lineTo(box.x-10,box.y+12);CX.lineTo(box.x+2,box.y+12);
+    CX.closePath();CX.fillStyle='#4dc3ff';CX.fill();
+
+    // ---- a sample creature in the top-right, showing how one row becomes one dot ----
+    const d=DATA[this.blink%DATA.length];
+    DATA.forEach((dd,i)=>faceAt(a.X,a.Y,dd[this.xc],dd[this.yc],7,COLOR[dd.species],(i+this.blink)%19===0));
+
     CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.textAlign='center';
-    CX.fillText('58 CREATURES · CANDY / GUMMY / COOKIE',W/2,284);CX.textAlign='left';
+    CX.fillText('ONE CREATURE = ONE DOT',W/2,32);CX.textAlign='left';
+    CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';
+    CX.fillText('▶ = ALONG THE BOTTOM    ▲ = UP THE SIDE',26,288);
   },
   click(p){
     const X=v=>70+(v-COLS[this.xc].min)/(COLS[this.xc].max-COLS[this.xc].min)*352;
@@ -646,10 +919,10 @@ const LEVELS=[
       CX.fillText('#'+best.id+'  '+TAG[best.species]+'  '+best.bill+' STRIPES',34,32);
     }
   },
-  say:'Put one column along the bottom and another up the side. Candy, gummy and cookie creatures <b>gather into three clumps</b> — you just couldn\'t see that in the table! <span style="color:#8a8ab8;">(big word: scatter plot)</span>',
+  say:'Every dot is <b>one creature</b>. The column you pick with <b>▶</b> runs along the bottom, the one you pick with <b>▲</b> goes up the side. Press the two buttons to swap columns and watch everyone move!',
   sowhat:'A dot cloud is just two columns of the table, drawn.',
   quiz:[
-    {q:'A dot cloud shows...',o:['Every column at once','Two columns, one per side','The total'],a:1,why:'Two columns, that\'s it.'},
+    {q:'The column marked ▶ goes...',o:['Up the side','Along the bottom','In the title'],a:1,why:'▶ means left-to-right.'},
     {q:'Each dot is...',o:['One column','One creature','One kind'],a:1,why:'One row = one dot = one creature.'}
   ]
 },
@@ -657,12 +930,19 @@ const LEVELS=[
 {
   id:'0.3',name:'BAR PILE-UP',real:'histograms',icon:'📊',sub:'counting creatures',
   build(){
-    this.col='bill';this.bins=8;this.showMM=true;this.blink=0;
-    this.ctrl([{t:'STRIPES',f:()=>{this.col='bill';}},{t:'WIDTH',f:()=>{this.col='flipper';}},
-               {t:'WEIGHT',f:()=>{this.col='mass';}},
-               {t:'FEWER BOXES',f:()=>{this.bins=Math.max(2,this.bins-2);}},
-               {t:'MORE BOXES',f:()=>{this.bins=Math.min(22,this.bins+2);}},
-               {t:'MEAN/MID',f:()=>{this.showMM=!this.showMM;}}]);
+    this.col='bill';this.bins=8;this.mark='mean';this.blink=0;
+    this.sync();
+  },
+  sync(){
+    this.ctrl([
+      {t:'STRIPES',on:this.col==='bill',f:()=>{this.col='bill';this.sync();}},
+      {t:'WIDTH',on:this.col==='flipper',f:()=>{this.col='flipper';this.sync();}},
+      {t:'WEIGHT',on:this.col==='mass',f:()=>{this.col='mass';this.sync();}},
+      {t:'FEWER BOXES',f:()=>{this.bins=Math.max(2,this.bins-2);}},
+      {t:'MORE BOXES',f:()=>{this.bins=Math.min(22,this.bins+2);}},
+      {t:'● MEAN',on:this.mark==='mean',f:()=>{this.mark=this.mark==='mean'?'none':'mean';this.sync();}},
+      {t:'● MIDDLE',on:this.mark==='med',f:()=>{this.mark=this.mark==='med'?'none':'med';this.sync();}}
+    ]);
   },
   draw(){
     clearCv();playArea();
@@ -684,24 +964,51 @@ const LEVELS=[
         CX.fillText(n,bx+bwd/2,238-hh-4);CX.textAlign='left';
       }
     });
-    if(this.showMM){
-      const mean=vals.reduce((s,v)=>s+v,0)/vals.length;
-      const sorted=[...vals].sort((a,b)=>a-b),med=sorted[Math.floor(sorted.length/2)];
-      const xm=64+(mean-mn)*xr,xd=64+(med-mn)*xr;
-      CX.strokeStyle='#5dd75d';CX.lineWidth=3;
-      CX.beginPath();CX.moveTo(xm,42);CX.lineTo(xm,238);CX.stroke();
-      CX.strokeStyle='#ffd23e';CX.setLineDash([5,4]);
-      CX.beginPath();CX.moveTo(xd,42);CX.lineTo(xd,238);CX.stroke();CX.setLineDash([]);
-      CX.font='7px "Press Start 2P"';CX.fillStyle='#5dd75d';CX.fillText('MEAN',xm+3,50);
-      CX.fillStyle='#ffd23e';CX.fillText('MID',xd+3,62);
+
+    /* ---- the marker: MEAN or MIDDLE, labelled clearly ---- */
+    const sorted=[...vals].sort((x,y)=>x-y);
+    const mean=vals.reduce((t,v)=>t+v,0)/vals.length;
+    const med=sorted.length%2?sorted[(sorted.length-1)/2]:(sorted[sorted.length/2-1]+sorted[sorted.length/2])/2;
+    if(this.mark!=='none'){
+      const isMean=this.mark==='mean';
+      const val=isMean?mean:med;
+      const col=isMean?'#5dd75d':'#ffd23e';
+      const xm=64+(val-mn)*xr;
+      // the line
+      CX.strokeStyle=col;CX.lineWidth=4;
+      if(!isMean)CX.setLineDash([6,4]);
+      CX.beginPath();CX.moveTo(xm,52);CX.lineTo(xm,238);CX.stroke();CX.setLineDash([]);
+      // a little flag on top of the line, so it can't be mistaken
+      CX.font='7px "Press Start 2P"';
+      const label=isMean?'MEAN':'MIDDLE';
+      let tw=0;try{tw=CX.measureText(label).width||0;}catch(e){tw=0;}
+      tw=tw||label.length*7;
+      const fw=tw+12;
+      const fx=Math.min(Math.max(66,xm-fw/2),W-70);
+      CX.fillStyle=col;CX.fillRect(fx,34,fw,16);
+      CX.strokeStyle='#000';CX.lineWidth=2;CX.strokeRect(fx,34,fw,16);
+      CX.fillStyle='#141433';CX.textAlign='center';
+      CX.fillText(label,fx+fw/2,46);
+      CX.textAlign='left';
+      // the exact number, next to the line
+      CX.fillStyle=col;CX.font='7px "Press Start 2P"';
+      const shown=(this.col==='mass')?Math.round(val):val.toFixed(1);
+      CX.fillText(shown,xm+4,230);
     }
+
     CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.textAlign='center';
-    CX.fillText(this.bins+' BOXES',W/2,284);CX.textAlign='left';
+    CX.fillText(this.bins+' BOXES',W/2,258);
+    CX.textAlign='left';
+    // plain-english reminder of what each marker is
+    CX.font='6px "Press Start 2P"';CX.fillStyle='#8a8ab8';
+    CX.fillText('MEAN = ADD THEM ALL, SHARE IT OUT',24,278);
+    CX.fillText('MIDDLE = THE ONE IN THE MIDDLE',24,290);
   },
-  say:'Pile the creatures up by size! Each tower counts how many fit in that slice. <b>Fewer boxes</b> = one big lump. <b>More boxes</b> = lots of skinny towers. <span style="color:#8a8ab8;">(big word: histogram)</span>',
+  say:'Pile the creatures up by size! Each tower counts how many fit in that slice. <b>Fewer boxes</b> = one big lump. <b>More boxes</b> = lots of skinny towers. Tap <b>● MEAN</b> or <b>● MIDDLE</b> to put a marker on the chart — mean is the fair share, middle is the one standing in the centre. <span style="color:#8a8ab8;">(big word: histogram)</span>',
   sowhat:'Bars just count how many creatures land in each box.',
   quiz:[
     {q:'What does one bar show?',o:['One creature','How many creatures are in that range','The biggest creature'],a:1,why:'One bar = one box = a count.'},
+    {q:'The MIDDLE marker is...',o:['The most common size','The creature standing in the centre','The biggest one'],a:1,why:'Line them up — middle is the one in the middle.'},
     {q:'Too many skinny boxes and the picture...',o:['Gets clearer','Gets noisy and spiky','Stays the same'],a:1,why:'Tiny boxes = noise. Box size is your choice!'}
   ]
 },
@@ -782,9 +1089,17 @@ const LEVELS=[
 {
   id:'0.5',name:'THE SNAP LINE',real:'correlation (r)',icon:'📈',sub:'do they move together?',
   build(){
-    this.pts=[];this.mode='line';this.make();
-    this.ctrl([{t:'↺ LINE',f:()=>this.make('line')},{t:'↺ BLOB',f:()=>this.make('blob')},
-               {t:'↺ U SHAPE',f:()=>this.make('curve')},{t:'↺ RING',f:()=>this.make('circle')}]);
+    this.pts=[];this.mode='line';this.pop=false;this.make();
+    this.sync();
+  },
+  sync(){
+    this.ctrl([
+      {t:'↺ LINE',on:this.mode==='line',f:()=>this.make('line')},
+      {t:'↺ BLOB',on:this.mode==='blob',f:()=>this.make('blob')},
+      {t:'↺ U SHAPE',on:this.mode==='curve',f:()=>this.make('curve')},
+      {t:'↺ RING',on:this.mode==='circle',f:()=>this.make('circle')},
+      {t:'🔎 WHAT IS r?',on:this.pop,f:()=>{this.pop=!this.pop;this.sync();}}
+    ]);
   },
   make(kind){
     this.mode=kind||this.mode;this.pts=[];
@@ -806,46 +1121,86 @@ const LEVELS=[
   },
   draw(){
     clearCv();playArea();
-    const a=axes({x:64,y:42,w:358,h:190},{x0:0,x1:1,y0:0,y1:1},{x:'SIZE',y:'SPEED',ticks:4});
     const st=this.r();
+    const rv=st.r;
+    const col=rv>0.6?'#5dd75d':rv>0.25?'#ffd23e':'#ff4d5e';
+    const lean=Math.abs(rv)<0.2?'FLAT':(rv>0?'UP':'DOWN');
+
+    if(this.pop){ this.drawPop(st,rv,col,lean); return; }
+
+    const a=axes({x:64,y:42,w:358,h:190},{x0:0,x1:1,y0:0,y1:1},{x:'SIZE',y:'SPEED',ticks:4});
     const slope=st.sxy/(st.sxx||1),icpt=st.my-slope*st.mx;
     CX.strokeStyle='#5dd75d';CX.lineWidth=4;
     CX.beginPath();CX.moveTo(a.X(0),a.Y(icpt));CX.lineTo(a.X(1),a.Y(icpt+slope));CX.stroke();
     this.pts.forEach((p,i)=>faceAt(a.X,a.Y,p.x,p.y,7,'#4dc3ff',(i)%13===0));
-    const rv=st.r;
-    const col=rv>0.6?'#5dd75d':rv>0.25?'#ffd23e':'#ff4d5e';
-    const lean=Math.abs(rv)<0.2?'FLAT':(rv>0?'UP':'DOWN');
-    /* ---- a big friendly meter for r, so the number means something ---- */
-    const mx0=24,my0=16,mw=180,mh=16;
-    CX.fillStyle='#141433';CX.fillRect(mx0,my0,mw,mh);
+
+    /* ---- the r card, big and readable ---- */
+    CX.fillStyle='#141433';CX.fillRect(14,14,206,96);
+    CX.strokeStyle=col;CX.lineWidth=3;CX.strokeRect(14,14,206,96);
+    CX.font='9px "Press Start 2P"';CX.fillStyle='#8a8ab8';
+    CX.fillText('r =',22,34);
+    CX.font='20px "Press Start 2P"';CX.fillStyle=col;
+    CX.fillText(rv.toFixed(2),74,38);
+    CX.font='9px "Press Start 2P"';CX.fillStyle='#fff6e6';
+    CX.fillText(lean==='FLAT'?'LINE IS FLAT':(lean==='UP'?'LEANS UP ↗':'LEANS DOWN ↘'),22,58);
+    CX.font='8px "Press Start 2P"';CX.fillStyle=col;
+    CX.fillText(Math.abs(rv)>0.6?'TIGHT HUG':Math.abs(rv)>0.25?'A BIT LOOSE':'ALL OVER',22,74);
+    // mini meter -1 .. +1
+    const mx0=22,my0=84,mw=190,mh=14;
+    CX.fillStyle='#232355';CX.fillRect(mx0,my0,mw,mh);
     CX.strokeStyle='#3d3d7a';CX.lineWidth=2;CX.strokeRect(mx0,my0,mw,mh);
     const half=mw/2;
-    if(rv>=0){CX.fillStyle=col;CX.fillRect(mx0+half,my0+2,rv*half,mh-4);}
-    else{CX.fillStyle=col;CX.fillRect(mx0+half+rv*half,my0+2,-rv*half,mh-4);}
+    CX.fillStyle=col;
+    if(rv>=0)CX.fillRect(mx0+half,my0+2,rv*half,mh-4);
+    else CX.fillRect(mx0+half+rv*half,my0+2,-rv*half,mh-4);
     CX.strokeStyle='#fff6e6';CX.lineWidth=2;
     CX.beginPath();CX.moveTo(mx0+half,my0);CX.lineTo(mx0+half,my0+mh);CX.stroke();
-    CX.font='7px "Press Start 2P"';CX.fillStyle='#8a8ab8';
-    CX.textAlign='left';CX.fillText('-1',mx0,my0+mh+11);
-    CX.textAlign='center';CX.fillText('0',mx0+half,my0+mh+11);
-    CX.textAlign='right';CX.fillText('+1',mx0+mw,my0+mh+11);
-    CX.textAlign='left';
-    CX.font='13px "Press Start 2P"';CX.fillStyle=col;
-    CX.fillText('r = '+rv.toFixed(2),mx0,my0+50);
-    CX.font='7px "Press Start 2P"';CX.fillStyle='#fff6e6';
-    CX.fillText(lean==='FLAT'?'NO LINE AT ALL':(lean==='UP'?'LEANS UP':'LEANS DOWN'),mx0,my0+66);
-    CX.fillStyle='#8a8ab8';
-    CX.fillText(Math.abs(rv)>0.6?'TIGHT HUG':Math.abs(rv)>0.25?'A BIT LOOSE':'ALL OVER',mx0,my0+79);
+
     CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.textAlign='center';
-    CX.fillText('DRAG A CREATURE!',W/2,284);CX.textAlign='left';
+    CX.fillText('DRAG A CREATURE!  ·  TAP 🔎 WHAT IS r?',W/2,282);CX.textAlign='left';
+  },
+  /* ---- the big pop-up: everything spelled out at a readable size ---- */
+  drawPop(st,rv,col,lean){
+    CX.fillStyle='rgba(6,6,22,.86)';CX.fillRect(0,0,W,H);
+    popPanel(16,14,W-32,272,'WHAT IS r?',col);
+    // a small live chart on the left, same numbers as behind it
+    const a=axes({x:32,y:56,w:196,h:150},{x0:0,x1:1,y0:0,y1:1},{x:'',y:'',ticks:3});
+    const slope=st.sxy/(st.sxx||1),icpt=st.my-slope*st.mx;
+    CX.strokeStyle='#5dd75d';CX.lineWidth=4;
+    CX.beginPath();CX.moveTo(a.X(0),a.Y(icpt));CX.lineTo(a.X(1),a.Y(icpt+slope));CX.stroke();
+    this.pts.forEach((p,i)=>faceAt(a.X,a.Y,p.x,p.y,5,'#4dc3ff',(i)%13===0));
+    CX.font='7px "Press Start 2P"';CX.fillStyle='#8a8ab8';
+    CX.fillText('SIZE →',90,246);CX.fillText('SPEED',36,64);
+
+    // the words on the right
+    const x=246;
+    CX.font='20px "Press Start 2P"';CX.fillStyle=col;CX.fillText(rv.toFixed(2),x,84);
+    CX.font='9px "Press Start 2P"';CX.fillStyle='#8a8ab8';CX.fillText('r =',x,58);
+    popRow(x,116,'IT LEANS '+lean+' '+({UP:'↗',DOWN:'↘',FLAT:'→'})[lean],'#fff6e6',10);
+    popRow(x,140,Math.abs(rv)>0.6?'THEY HUG TIGHTLY':Math.abs(rv)>0.25?'A BIT LOOSE':'ALL OVER THE PLACE',col,9);
+    // the plain-english explanation
+    popRow(34,200,'r IS ONE NUMBER, -1 TO +1.', '#ffd23e',9);
+    popRow(34,222,'BIG + r  = LEANS UP, TIGHT HUG', '#5dd75d',8);
+    popRow(34,240,'BIG - r  = LEANS DOWN, TIGHT HUG','#ff4d5e',8);
+    popRow(34,258,'r NEAR 0 = NO LINE, ALL OVER','#8a8ab8',8);
+    popBtn(W-118,254,88,22,'GOT IT',col,true);
+  },
+  click(p){
+    if(this.pop){
+      if(p.x>W-124&&p.y>248){this.pop=false;this.sync();this.draw();}
+      return;
+    }
+    if(p.y<114&&p.x<226){this.pop=true;this.sync();this.draw();}
   },
   drag(p){
+    if(this.pop)return;
     const x=Math.max(0.03,Math.min(0.97,(p.x-64)/358));
     const y=Math.max(0.03,Math.min(0.97,1-(p.y-42)/190));
     let best=null,bd=1e9;
     this.pts.forEach(q=>{const dx=(64+q.x*358)-p.x,dy=(42+(1-q.y)*190)-p.y,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;best=q;}});
     if(best&&bd<1200){best.x=x;best.y=y;this.draw();}
   },
-  say:'The green line is the <b>snap line</b>. <b>r</b> is one number that tells you two things: <b>which way</b> the line leans, and <b>how tightly</b> everyone hugs it. Watch the meter while you drag! <span style="color:#8a8ab8;">(big word: correlation)</span>',
+  say:'The green line is the <b>snap line</b>. <b>r</b> is one number that tells you two things: <b>which way</b> the line leans, and <b>how tightly</b> everyone hugs it. Tap the <b>r</b> card (or 🔎 WHAT IS r?) for a big pop-up that spells it out. <span style="color:#8a8ab8;">(big word: correlation)</span>',
   sowhat:'r tells you two things: which way the line leans, and how tightly everyone hugs it.',
   quiz:[
     {q:'The dots make a perfect U. What is r?',o:['Close to 1','Close to 0','Close to −1'],a:1,why:'A straight line can\'t hug a U! The pattern is real, the line is wrong.'},
@@ -897,67 +1252,125 @@ const LEVELS=[
 {
   id:'0.7',name:'TRICKY PICTURES',real:'misleading charts',icon:'🎭',sub:'these charts are lying!',
   build(){
-    this.which=0;this.broken=[true,true,true,true];
-    this.ctrl([{t:'1 ZOOMED',f:()=>{this.which=0;}},{t:'2 TWO SIDES',f:()=>{this.which=1;}},
-               {t:'3 PIE',f:()=>{this.which=2;}},{t:'4 WRONG ORDER',f:()=>{this.which=3;}},
-               {t:'🔧 FIX IT!',f:()=>{this.broken[this.which]=!this.broken[this.which];}}]);
+    this.which=0;this.broken=[true,true,true,true];this.sync();
+  },
+  sync(){
+    const names=['1 ZOOMED','2 TWO SIDES','3 PIE','4 WRONG ORDER'];
+    this.ctrl(names.map((t,i)=>({t:t,on:this.which===i,f:()=>{this.which=i;this.sync();}})).concat(
+      [{t:'🔧 FIX IT!',on:!this.broken[this.which],f:()=>{this.broken[this.which]=!this.broken[this.which];this.sync();}}]));
   },
   draw(){
     clearCv();playArea();
     const bad=this.broken[this.which];
     const vals=[42,44,43,45,46,47];
     CX.font='8px "Press Start 2P"';
+    const BAD='#ff4d5e',GOOD='#5dd75d';
+
     if(this.which===0){
       const y0=bad?42:0;
-      const a=axes({x:66,y:46,w:344,h:180},{x0:0,x1:6,y0:y0,y1:48},{x:'MONTH',y:'CANDY',ticks:4});
+      const a=axes({x:66,y:46,w:344,h:180},{x0:0,x1:6,y0:y0,y1:48},
+        {x:'MONTH',y:'CANDY',ticks:4},
+        bad?{badY:(v)=>Math.abs(v-42)<0.01}:{});
       vals.forEach((v,i)=>{
-        CX.fillStyle=bad?'#ff4d5e':'#5dd75d';
+        CX.fillStyle=bad?BAD:GOOD;
         const hh=(v-y0)/(48-y0)*176;
         CX.fillRect(66+i*57,226-hh,44,hh);
       });
-      CX.fillStyle=bad?'#ff4d5e':'#5dd75d';CX.fillText(bad?'✖ BOTTOM STARTS AT 42':'✔ BOTTOM STARTS AT 0',24,34);
-      CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
-      CX.fillText(bad?'LOOKS LIKE A ROCKET!':'really only a tiny rise',24,284);
+      if(bad){
+        // show what it SHOULD look like, as a faint ghost
+        CX.fillStyle='rgba(93,215,93,.22)';
+        vals.forEach((v,i)=>{const hh=v/48*176;CX.fillRect(66+i*57,226-hh,44,hh);});
+        lieTag(150,14,'THE BOTTOM IS CUT OFF',true);
+        CX.fillStyle=BAD;CX.fillText('✖ BOTTOM STARTS AT 42',24,42);
+        CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+        CX.fillText('LOOKS LIKE A ROCKET!',24,284);
+        CX.fillStyle='#5dd75d';CX.font='7px "Press Start 2P"';
+        CX.textAlign='right';CX.fillText('GREEN = WHAT IT REALLY IS',W-16,284);CX.textAlign='left';
+      }else{
+        CX.fillStyle=GOOD;CX.fillText('✔ BOTTOM STARTS AT 0',24,42);
+        CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+        CX.fillText('really only a tiny rise',24,284);
+      }
+
     }else if(this.which===1){
-      axes({x:66,y:46,w:344,h:180},{x0:0,x1:6,y0:0,y1:100},{x:'MONTH',y:'LEFT SIDE',ticks:4});
+      // two scales, one chart: label both sides in their own colour and blame the left one
+      const a=axes({x:66,y:46,w:344,h:180},{x0:0,x1:6,y0:0,y1:100},{x:'MONTH',y:'',ticks:4});
+      CX.save();CX.translate(24,136);CX.rotate(-Math.PI/2);
+      CX.fillStyle=bad?BAD:'#4dc3ff';CX.font='7px "Press Start 2P"';CX.fillText('CANDY',0,0);CX.restore();
+      CX.save();CX.translate(W-10,136);CX.rotate(-Math.PI/2);
+      CX.fillStyle='#ffd23e';CX.font='7px "Press Start 2P"';CX.fillText('PRICE',0,0);CX.restore();
+      // the right-hand numbers, so the second scale is visible
+      CX.font='7px "Press Start 2P"';CX.fillStyle='#ffd23e';CX.textAlign='left';
+      for(let i=0;i<=4;i++){const v=100-i*25;CX.fillText(fmt(v),a.X(6)+6,a.Y(v)+3);}
+      CX.textAlign='left';
       CX.strokeStyle='#4dc3ff';CX.lineWidth=4;CX.beginPath();
       vals.forEach((v,i)=>{const x=66+i*57+22,y=226-v/50*176;i?CX.lineTo(x,y):CX.moveTo(x,y);});CX.stroke();
-      const b=[100,60,40,30,25,20];
-      CX.strokeStyle='#ffd23e';CX.beginPath();
-      b.forEach((v,i)=>{const x=66+i*57+22,y=226-v/100*176;i?CX.lineTo(x,y):CX.moveTo(x,y);});CX.stroke();
-      CX.fillStyle='#4dc3ff';CX.fillText('CANDY',24,190);
-      CX.fillStyle='#ffd23e';CX.fillText('PRICE',24,210);
-      CX.fillStyle=bad?'#ff4d5e':'#5dd75d';CX.fillText(bad?'✖ TWO SIDES, ONE CHART':'✔ TWO CHARTS',24,34);
-      CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
-      CX.fillText(bad?'"candy crashes as price falls"':'two things, two charts',24,284);
+      const bb=[100,60,40,30,25,20];
+      CX.strokeStyle='#ffd23e';CX.lineWidth=4;CX.beginPath();
+      bb.forEach((v,i)=>{const x=66+i*57+22,y=226-v/100*176;i?CX.lineTo(x,y):CX.moveTo(x,y);});CX.stroke();
+      if(bad){
+        lieTag(240,14,'TWO SCALES, ONE CHART',true);
+        CX.fillStyle=BAD;CX.fillText('✖ CANDY LOOKS LIKE IT CRASHES',24,42);
+        CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+        CX.fillText('"candy falls as price falls"',24,284);
+      }else{
+        CX.fillStyle=GOOD;CX.fillText('✔ TWO CHARTS, ONE SCALE EACH',24,42);
+        CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+        CX.fillText('now each line has its own picture',24,284);
+      }
+
     }else if(this.which===2){
       const parts=[45,30,15,7,3],cols=['#ff4d5e','#4dc3ff','#ffd23e','#5dd75d','#b06bff'];
+      const names=['CANDY','GUMMY','COOKIE','TOFFEE','MINT'];
       if(bad){
-        let ang=-Math.PI/2;const cx=W/2,cy=158,R=84;
+        let ang=-Math.PI/2;const cx=W/2,cy=166,R=84;
         parts.forEach((v,i)=>{
           const sl=v/100*Math.PI*2;
           CX.fillStyle=cols[i];CX.beginPath();CX.moveTo(cx,cy);CX.arc(cx,cy,R,ang,ang+sl);CX.closePath();CX.fill();
-          CX.strokeStyle='#000';CX.lineWidth=2;CX.stroke();ang+=sl;
+          CX.strokeStyle='#000';CX.lineWidth=2;CX.stroke();
+          // blame the two smallest slices with a red ring
+          if(v<=7){
+            CX.strokeStyle='#ff4d5e';CX.lineWidth=6;
+            CX.beginPath();CX.arc(cx,cy,R+8,ang+0.03,ang+sl-0.03);CX.stroke();
+          }
+          ang+=sl;
         });
-        CX.fillStyle='#ff4d5e';CX.fillText('✖ 5-SLICE PIE',24,34);
-        CX.fillStyle='#c8c8e8';CX.fillText('which tiny slice is biggest?',24,284);
+        lieTag(300,52,'TOO SMALL TO SEE',false);
+        CX.fillStyle=BAD;CX.fillText('✖ 5-SLICE PIE',24,34);
+        CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+        CX.fillText('which tiny slice is biggest?',24,284);
+        CX.fillStyle=BAD;CX.font='7px "Press Start 2P"';
+        CX.textAlign='right';CX.fillText('RED RINGS = CANNOT COMPARE',W-16,284);CX.textAlign='left';
       }else{
         axes({x:66,y:46,w:344,h:170},{x0:0,x1:5,y0:0,y1:50},{x:'TEAM',y:'SHARE',ticks:4});
         parts.forEach((v,i)=>{CX.fillStyle=cols[i];CX.fillRect(66+i*69,216-v/50*170,54,v/50*170);});
-        CX.fillStyle='#5dd75d';CX.fillText('✔ BARS',24,34);
-        CX.fillStyle='#c8c8e8';CX.fillText('now the order is obvious',24,284);
+        CX.fillStyle=GOOD;CX.fillText('✔ BARS',24,34);
+        CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+        CX.fillText('now the order is obvious',24,284);
       }
+
     }else{
       const v2=bad?[42,46,43,47,44,45]:[42,43,44,45,46,47];
-      axes({x:66,y:46,w:344,h:180},{x0:0,x1:6,y0:bad?0:40,y1:48},{x:'ORDER',y:'SCORE',ticks:4});
-      CX.strokeStyle=bad?'#ff4d5e':'#5dd75d';CX.lineWidth=4;CX.beginPath();
+      const a=axes({x:66,y:46,w:344,h:180},{x0:0,x1:6,y0:bad?0:40,y1:48},
+        {x:'ORDER',y:'SCORE',ticks:4},bad?{badY:(v)=>Math.abs(v-40)<0.01}:{});
+      CX.strokeStyle=bad?BAD:GOOD;CX.lineWidth=4;CX.beginPath();
       v2.forEach((v,i)=>{const x=66+i*57+22,y=226-(v-(bad?0:40))/(48-(bad?0:40))*176;i?CX.lineTo(x,y):CX.moveTo(x,y);});CX.stroke();
-      CX.fillStyle=bad?'#ff4d5e':'#5dd75d';CX.fillText(bad?'✖ LINE THROUGH STUFF':'✔ SORTED BARS',24,34);
-      CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
-      CX.fillText(bad?'"it goes up and down!" (it doesn\'t)':'sorted, the trend is real',24,284);
+      if(bad){
+        // red rings around every zig-zag joint
+        v2.forEach((v,i)=>{const x=66+i*57+22,y=226-(v-0)/(48-0)*176;
+          CX.strokeStyle='#ff4d5e';CX.lineWidth=3;CX.beginPath();CX.arc(x,y,8,0,7);CX.stroke();});
+        lieTag(250,14,'THE ORDER IS SHUFFLED',true);
+        CX.fillStyle=BAD;CX.fillText('✖ LINE THROUGH STUFF',24,42);
+        CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+        CX.fillText('"it goes up and down!" (it doesn\'t)',24,284);
+      }else{
+        CX.fillStyle=GOOD;CX.fillText('✔ SORTED BARS',24,42);
+        CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';
+        CX.fillText('sorted, the trend is real',24,284);
+      }
     }
   },
-  say:'Every one of these pictures shows <b>the same six numbers</b>. Only the drawing changed. Hit <b>FIX IT!</b> on each one and watch the lie disappear. <span style="color:#8a8ab8;">(big word: misleading charts)</span>',
+  say:'Every one of these pictures shows <b>the same six numbers</b>. Only the drawing changed. The <b>red parts</b> are the lie — the red number on the axis, the red ring, the red tag. Hit <b>🔧 FIX IT!</b> and watch the red disappear. <span style="color:#8a8ab8;">(big word: misleading charts)</span>',
   sowhat:'The same numbers can look like opposite stories. The numbers never warn you.',
   quiz:[
     {q:'The bottom of a bar chart starts at 90, not 0. What happens?',o:['Nothing','Tiny differences look huge','The bars vanish'],a:1,why:'Zooming the bottom stretches small gaps into drama.'},
@@ -975,11 +1388,12 @@ const LEVELS=[
   draw(){
     clearCv();playArea();
     const cols=['bill','flipper','mass'],names=['STRIPES','WIDTH','WEIGHT'];
-    axes({x:66,y:46,w:344,h:180},{x0:0,x1:3,y0:0,y1:this.grouped?7000:200},{x:'THING',y:'SIZE',ticks:4});
+    const top=this.grouped?6200:220;
+    axes({x:66,y:46,w:344,h:180},{x0:0,x1:3,y0:0,y1:top},{x:'THING',y:'SIZE',ticks:4});
     if(!this.grouped){
       cols.forEach((c,i)=>{
         const v=DATA.reduce((s,d)=>s+d[c],0)/DATA.length;
-        const hh=v/200*176;
+        const hh=Math.min(176,v/top*176);
         CX.fillStyle=['#ff4d5e','#4dc3ff','#ffd23e'][i];
         CX.fillRect(66+i*112+20,226-hh,72,hh);
         CX.strokeStyle='#000';CX.lineWidth=2;CX.strokeRect(66+i*112+20,226-hh,72,hh);
@@ -990,7 +1404,7 @@ const LEVELS=[
       ['red','blue','gold'].forEach((sp,si)=>cols.forEach((c,ci)=>{
         const rows=DATA.filter(d=>d.species===sp);
         const v=rows.reduce((s,d)=>s+d[c],0)/rows.length;
-        const hh=v/7000*176;
+        const hh=Math.min(176,v/top*176);
         CX.fillStyle=COLOR[sp];
         CX.fillRect(66+ci*112+12+si*24,226-hh,20,hh);
         CX.strokeStyle='#000';CX.lineWidth=2;CX.strokeRect(66+ci*112+12+si*24,226-hh,20,hh);
@@ -1059,7 +1473,7 @@ const LEVELS=[
     const cols=['bill','flipper','mass'],names=['STRIPES','WIDTH','WEIGHT'];
     if(this.mode==='matrix'){
       CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.fillText('EVERY PAIR, SIDE BY SIDE',24,34);
-      const s=104,ox=62,oy=52;
+      const s=62,ox=78,oy=50;
       cols.forEach((cy,ri)=>cols.forEach((cx_,ci)=>{
         const bx=ox+ci*s,by=oy+ri*s;
         CX.fillStyle='#1a1a40';CX.fillRect(bx,by,s-6,s-6);
@@ -1073,7 +1487,7 @@ const LEVELS=[
         if(ri===cols.length-1){CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';CX.fillText(names[ci],bx,oy+3*s+4);}
       }));
       CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';
-      CX.fillText('STRIP',4,oy+52);CX.fillText('WIDTH',6,oy+156);CX.fillText('WT',22,oy+260);
+      CX.fillText('STRIP',6,oy+40);CX.fillText('WIDTH',10,oy+102);CX.fillText('WT',26,oy+164);
     }else{
       CX.fillStyle='#c8c8e8';CX.font='8px "Press Start 2P"';CX.fillText('ONE NUMBER PER PAIR',24,34);
       const corr=(a,b)=>{
@@ -1083,7 +1497,7 @@ const LEVELS=[
         A.forEach((v,i)=>{sxy+=(v-ma)*(B[i]-mb);sxx+=(v-ma)**2;syy+=(B[i]-mb)**2;});
         return sxy/Math.sqrt(sxx*syy||1);
       };
-      const s=110,ox=100,oy=52;
+      const s=62,ox=96,oy=46;
       cols.forEach((cy,ri)=>cols.forEach((cx_,ci)=>{
         const r=corr(cx_,cy),bx=ox+ci*s,by=oy+ri*s,t=(r+1)/2;
         CX.fillStyle='rgb('+Math.round(50+t*200)+','+Math.round(70+t*120)+','+Math.round(150-t*80)+')';
@@ -1093,7 +1507,7 @@ const LEVELS=[
         if(ri===cols.length-1){CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';CX.fillText(names[ci],bx,oy+3*s+4);}
       }));
       CX.fillStyle='#8a8ab8';CX.font='7px "Press Start 2P"';
-      CX.fillText('STRIPES',6,oy+56);CX.fillText('WIDTH',12,oy+166);CX.fillText('WT',32,oy+276);
+      CX.fillText('STRIPES',4,oy+40);CX.fillText('WIDTH',10,oy+102);CX.fillText('WT',26,oy+164);
     }
   },
   say:'A screen shows two columns nicely and three badly. With more, you tile every pair — or squash each pair into <b>one number</b>. Either way you\'re choosing what to hide. That\'s why we learn to pick good columns next! <span style="color:#8a8ab8;">(big word: multivariate data)</span>',
@@ -1594,17 +2008,17 @@ const LEVELS=[
       const y=52+i*30;
       const kept=i<this.k;
       CX.fillStyle=kept?'#5dd75d':'#3d3d7a';
-      CX.fillRect(150,y-14,f.s*400,20);
+      CX.fillRect(120,y-14,f.s*300,20);
       CX.fillStyle='#fff6e6';CX.font='7px "Press Start 2P"';
       CX.fillText(f.n,26,y);
       CX.fillStyle=kept?'#5dd75d':'#8a8ab8';
-      CX.fillText(kept?'KEEP':'drop',150+f.s*400+6,y);
+      CX.fillText(kept?'KEEP':'drop',126+f.s*300,y);
     });
     // the cutoff line
     if(this.k<feats.length){
       const y=52+this.k*30-20;
       CX.strokeStyle='#ffd23e';CX.setLineDash([6,4]);CX.lineWidth=3;
-      CX.beginPath();CX.moveTo(140,y);CX.lineTo(W-20,y);CX.stroke();CX.setLineDash([]);
+      CX.beginPath();CX.moveTo(112,y);CX.lineTo(W-16,y);CX.stroke();CX.setLineDash([]);
     }
   },
   say:'A filter scores every column <b>on its own</b>, then keeps the top ones. Fast and simple! But it never notices two clues that only work <b>together</b> — that\'s the catch.',
@@ -1678,11 +2092,11 @@ const LEVELS=[
       const y=56+i*32;
       const gone=(this.mode==='lasso'&&w<=0);
       CX.fillStyle=gone?'#3d3d7a':(this.mode==='lasso'?'#5dd75d':'#4dc3ff');
-      CX.fillRect(150,y-14,w*380,20);
+      CX.fillRect(120,y-14,w*270,20);
       CX.fillStyle='#fff6e6';CX.font='7px "Press Start 2P"';
       CX.fillText(f.n,26,y);
       CX.fillStyle=gone?'#ff4d5e':'#8a8ab8';
-      CX.fillText(gone?'DELETED':w.toFixed(2),150+w*380+6,y);
+      CX.fillText(gone?'DELETED':w.toFixed(2),126+w*270,y);
     });
     CX.fillStyle='#c8c8e8';CX.font='7px "Press Start 2P"';
     CX.fillText('SHRINK LEVEL: '+this.pen,26,278);
@@ -1933,7 +2347,8 @@ function ctrl(list){
   ctrlBox.innerHTML='';
   list.forEach(c=>{
     const b=document.createElement('button');
-    b.className='btn small2 gray'+(c.on?' on':'');
+    b.className='btn small2 gray'+(c.on?' on':'')+(c.axis?' axis':'');
+    if(c.axis)b.dataset.axis=c.axis;
     b.textContent=c.t;
     b.onclick=()=>{sfx.click();c.f();refreshCtrl();cur.draw();};
     ctrlBox.appendChild(b);
@@ -2162,6 +2577,52 @@ document.getElementById('btn-res-hub').onclick=()=>{sfx.click();renderHub();show
 /* ============================================================
    STICKER BOOK
    ============================================================ */
+/* ============================================================
+   SUMMARY — "what have I learned so far?"
+   ============================================================ */
+function renderSummary(){
+  const total=LEVELS.length, got=S.done.length;
+  const pct=total?Math.round(got/total*100):0;
+  document.getElementById('sum-line').innerHTML=
+    'You have finished <b style="color:#ffd23e;">'+got+'</b> of <b>'+total+'</b> lessons. '+
+    (got===0?'Press ▶ PLAY to start!':(got===total?'You finished everything! 🎉':'Keep going!'));
+
+  let html='<div class="sumbar"><div class="sumbarfill" style="width:'+pct+'%"></div><span>'+pct+'%</span></div>';
+
+  STAGES.forEach(st=>{
+    const list=levelsOf(st);
+    const doneN=list.filter(o=>S.done.includes(o.L.id)).length;
+    const started=doneN>0;
+    const full=doneN===list.length;
+    html+='<div class="sumstage'+(started?'':' dim')+'" style="border-left-color:'+st.color+';">';
+    html+='<div class="sumhead">';
+    html+='<span class="sumicon">'+st.icon+'</span>';
+    html+='<span class="sumtitle" style="color:'+st.color+';">'+st.title+' · '+st.name+'</span>';
+    html+='<span class="sumcount">'+doneN+'/'+list.length+(full?' ✔':'')+'</span>';
+    html+='</div>';
+    html+='<p class="sumreal">(big word: '+st.real+')</p>';
+    if(!started){
+      html+='<p class="sumnone">Not yet — finish the stage before this one.</p>';
+    }else{
+      html+='<ul class="sumlist">';
+      list.forEach(o=>{
+        const L=o.L, ok=S.done.includes(L.id);
+        html+='<li class="'+(ok?'ok':'todo')+'">'+
+              '<span class="sumtick">'+(ok?'✔':'○')+'</span>'+
+              '<span class="sumwhat">'+L.name+'</span>'+
+              (ok?'<span class="sumwhy">'+L.sowhat+'</span>':'<span class="sumwhy">not done yet</span>')+
+              '</li>';
+      });
+      html+='</ul>';
+    }
+    html+='</div>';
+  });
+
+  html+='<div class="sumfoot">'+(got===total
+    ? 'You have met every idea in the game: reading pictures, making clues, picking clues, and guessing. That is machine learning, end to end. 🍬'
+    : 'Finish a lesson and it appears here — so you can always come back and remember.')+'</div>';
+  document.getElementById('sum-body').innerHTML=html;
+}
 function renderDex(){
   document.getElementById('dexgrid').innerHTML=LEVELS.map(L=>{
     const got=S.dex.includes(L.id);
@@ -2210,6 +2671,8 @@ function paintSettings(){
 document.getElementById('btn-play').onclick=()=>{sfx.click();startMusic();renderHub();show('screen-hub');};
 document.getElementById('btn-hub-home').onclick=()=>{sfx.click();show('screen-title');};
 document.getElementById('btn-home-settings').onclick=()=>{sfx.click();paintSettings();show('screen-settings');};
+document.getElementById('btn-home-summary').onclick=()=>{sfx.click();renderSummary();show('screen-summary');};
+document.getElementById('btn-sum-home').onclick=()=>{sfx.click();show('screen-title');};
 document.getElementById('btn-home-credits').onclick=()=>{sfx.click();document.getElementById('modal-credits').classList.remove('hidden');};
 document.getElementById('btn-credits-close').onclick=()=>{sfx.click();document.getElementById('modal-credits').classList.add('hidden');};
 document.getElementById('btn-set-home').onclick=()=>{sfx.click();show('screen-title');};
